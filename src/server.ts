@@ -15,19 +15,35 @@ app.use(cors());
 app.use(express.json());
 
 // ─── Auth Config ─────────────────────────────────────────────────────────────
-const ADMIN_USERNAME = process.env.APP_USERNAME || 'admin';
-const ADMIN_PASSWORD = process.env.APP_PASSWORD || 'demo1234';
-const activeSessions = new Set<string>();
+interface UserRecord { username: string; passwordHash: string; createdAt: string; }
+
+const usersFile = path.resolve(process.cwd(), 'data', 'users.json');
+const activeSessions = new Map<string, string>(); // token -> username
+
+function ensureDataDir() {
+  const dir = path.dirname(usersFile);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(usersFile)) fs.writeFileSync(usersFile, '[]', 'utf-8');
+}
+
+function loadUsers(): UserRecord[] {
+  try { ensureDataDir(); return JSON.parse(fs.readFileSync(usersFile, 'utf-8')); } catch { return []; }
+}
+
+function saveUsers(users: UserRecord[]) {
+  ensureDataDir();
+  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), 'utf-8');
+}
+
+function hashPassword(password: string): string {
+  return crypto.createHash('sha256').update(password + 'fp_salt_2024').digest('hex');
+}
 
 function generateToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
 function authMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
-  // Skip auth for login endpoint and health check
-  if (req.path === '/login' || req.path === '/health') {
-    return next();
-  }
   const token = req.headers['x-auth-token'] as string || req.query.token as string;
   if (!token || !activeSessions.has(token)) {
     return res.status(401).json({ error: 'Unauthorized. Please log in.' });
@@ -35,16 +51,51 @@ function authMiddleware(req: express.Request, res: express.Response, next: expre
   next();
 }
 
-app.post('/login', (req, res) => {
+// POST /signup
+app.post('/signup', (req, res) => {
   const { username, password } = req.body;
-  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-    const token = generateToken();
-    activeSessions.add(token);
-    return res.json({ success: true, token });
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required.' });
   }
-  return res.status(401).json({ error: 'Invalid username or password.' });
+  if (username.length < 3) {
+    return res.status(400).json({ error: 'Username must be at least 3 characters.' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  }
+  const users = loadUsers();
+  if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
+    return res.status(409).json({ error: 'Username already taken. Please choose another.' });
+  }
+  const newUser: UserRecord = {
+    username,
+    passwordHash: hashPassword(password),
+    createdAt: new Date().toISOString()
+  };
+  users.push(newUser);
+  saveUsers(users);
+  const token = generateToken();
+  activeSessions.set(token, username);
+  return res.json({ success: true, token, username });
 });
 
+// POST /login
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required.' });
+  }
+  const users = loadUsers();
+  const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+  if (!user || user.passwordHash !== hashPassword(password)) {
+    return res.status(401).json({ error: 'Invalid username or password.' });
+  }
+  const token = generateToken();
+  activeSessions.set(token, username);
+  return res.json({ success: true, token, username });
+});
+
+// POST /logout
 app.post('/logout', (req, res) => {
   const token = req.headers['x-auth-token'] as string;
   if (token) activeSessions.delete(token);

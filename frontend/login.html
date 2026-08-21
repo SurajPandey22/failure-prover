@@ -3,67 +3,173 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Failure Prover — Login</title>
+  <title>Failure Prover — Sign In</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config = { darkMode: 'class' }</script>
 </head>
-<body class="dark bg-zinc-950 min-h-screen flex items-center justify-center font-mono">
+<body class="bg-zinc-950 min-h-screen flex items-center justify-center font-sans">
+
   <div class="w-full max-w-sm px-4">
+
+    <!-- Logo -->
     <div class="text-center mb-8">
       <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-600/10 border border-blue-500/30 mb-4">
-        <svg class="w-7 h-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+        <svg class="w-7 h-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+        </svg>
       </div>
-      <h1 class="text-xl font-bold text-zinc-100">Failure Prover</h1>
+      <h1 class="text-2xl font-bold text-zinc-100 tracking-tight">Failure Prover</h1>
       <p class="text-xs text-zinc-500 mt-1">Autonomous Verification-Driven AI Debugger</p>
     </div>
-    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5 shadow-2xl">
-      <div class="text-center">
-        <h2 class="text-sm font-semibold text-zinc-200">Sign in to continue</h2>
-        <p class="text-xs text-zinc-500 mt-1">Enter your credentials to access the dashboard</p>
+
+    <!-- Card -->
+    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
+
+      <!-- Tabs -->
+      <div class="flex border-b border-zinc-800">
+        <button id="tabLogin" onclick="switchTab('login')"
+          class="flex-1 py-3.5 text-sm font-semibold text-blue-400 border-b-2 border-blue-500 bg-zinc-900 transition">
+          Sign In
+        </button>
+        <button id="tabSignup" onclick="switchTab('signup')"
+          class="flex-1 py-3.5 text-sm font-semibold text-zinc-500 border-b-2 border-transparent hover:text-zinc-300 transition">
+          Create Account
+        </button>
       </div>
-      <div id="errorAlert" class="hidden p-3 rounded-lg bg-red-950/60 border border-red-800 text-red-300 text-xs text-center">Invalid username or password.</div>
-      <div class="space-y-3">
-        <div>
-          <label class="block text-xs text-zinc-400 mb-1.5">Username</label>
-          <input id="username" type="text" placeholder="admin" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-sm text-zinc-200 focus:border-blue-500 outline-none transition" onkeydown="if(event.key==='Enter') login()" />
+
+      <div class="p-6 space-y-4">
+
+        <!-- Alert -->
+        <div id="alertBox" class="hidden p-3 rounded-lg text-xs text-center font-medium"></div>
+
+        <!-- LOGIN FORM -->
+        <div id="formLogin" class="space-y-4">
+          <div>
+            <label class="block text-xs text-zinc-400 mb-1.5 font-medium">Username</label>
+            <input id="loginUsername" type="text" placeholder="Enter your username" autocomplete="username"
+              class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-sm text-zinc-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition placeholder-zinc-600"
+              onkeydown="if(event.key==='Enter') handleLogin()" />
+          </div>
+          <div>
+            <label class="block text-xs text-zinc-400 mb-1.5 font-medium">Password</label>
+            <input id="loginPassword" type="password" placeholder="Enter your password" autocomplete="current-password"
+              class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-sm text-zinc-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition placeholder-zinc-600"
+              onkeydown="if(event.key==='Enter') handleLogin()" />
+          </div>
+          <button onclick="handleLogin()" id="loginBtn"
+            class="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold py-2.5 rounded-xl text-sm transition">
+            Sign In
+          </button>
+          <p class="text-center text-xs text-zinc-500">
+            No account? <button onclick="switchTab('signup')" class="text-blue-400 hover:underline">Create one</button>
+          </p>
         </div>
-        <div>
-          <label class="block text-xs text-zinc-400 mb-1.5">Password</label>
-          <input id="password" type="password" placeholder="????????" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-sm text-zinc-200 focus:border-blue-500 outline-none transition" onkeydown="if(event.key==='Enter') login()" />
+
+        <!-- SIGNUP FORM -->
+        <div id="formSignup" class="hidden space-y-4">
+          <div>
+            <label class="block text-xs text-zinc-400 mb-1.5 font-medium">Username <span class="text-zinc-600">(min 3 chars)</span></label>
+            <input id="signupUsername" type="text" placeholder="Choose a username" autocomplete="username"
+              class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-sm text-zinc-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition placeholder-zinc-600"
+              onkeydown="if(event.key==='Enter') handleSignup()" />
+          </div>
+          <div>
+            <label class="block text-xs text-zinc-400 mb-1.5 font-medium">Password <span class="text-zinc-600">(min 6 chars)</span></label>
+            <input id="signupPassword" type="password" placeholder="Create a password" autocomplete="new-password"
+              class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-sm text-zinc-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition placeholder-zinc-600"
+              onkeydown="if(event.key==='Enter') handleSignup()" />
+          </div>
+          <div>
+            <label class="block text-xs text-zinc-400 mb-1.5 font-medium">Confirm Password</label>
+            <input id="signupConfirm" type="password" placeholder="Repeat your password" autocomplete="new-password"
+              class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-sm text-zinc-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition placeholder-zinc-600"
+              onkeydown="if(event.key==='Enter') handleSignup()" />
+          </div>
+          <button onclick="handleSignup()" id="signupBtn"
+            class="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl text-sm transition">
+            Create Account
+          </button>
+          <p class="text-center text-xs text-zinc-500">
+            Already have an account? <button onclick="switchTab('login')" class="text-blue-400 hover:underline">Sign in</button>
+          </p>
         </div>
+
       </div>
-      <button onclick="login()" id="loginBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 px-6 rounded-xl text-sm transition flex items-center justify-center gap-2">
-        <span id="loginText">Sign In</span>
-      </button>
-      <p class="text-center text-[11px] text-zinc-600">Default: <span class="text-zinc-400 font-mono">admin</span> / <span class="text-zinc-400 font-mono">demo1234</span></p>
     </div>
+
+    <p class="text-center text-[11px] text-zinc-700 mt-6">Failure Prover v2.0 &middot; Powered by Gemini AI</p>
   </div>
+
   <script>
+    // If already logged in, go to dashboard
     if (localStorage.getItem('fp_token')) { window.location.href = '/'; }
-    async function login() {
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-      const errAlert = document.getElementById('errorAlert');
-      errAlert.classList.add('hidden');
-      document.getElementById('loginText').textContent = 'Signing in...';
-      document.getElementById('loginBtn').disabled = true;
+
+    function switchTab(tab) {
+      const isLogin = tab === 'login';
+      document.getElementById('formLogin').classList.toggle('hidden', !isLogin);
+      document.getElementById('formSignup').classList.toggle('hidden', isLogin);
+      document.getElementById('tabLogin').className = isLogin
+        ? 'flex-1 py-3.5 text-sm font-semibold text-blue-400 border-b-2 border-blue-500 bg-zinc-900 transition'
+        : 'flex-1 py-3.5 text-sm font-semibold text-zinc-500 border-b-2 border-transparent hover:text-zinc-300 transition';
+      document.getElementById('tabSignup').className = !isLogin
+        ? 'flex-1 py-3.5 text-sm font-semibold text-blue-400 border-b-2 border-blue-500 bg-zinc-900 transition'
+        : 'flex-1 py-3.5 text-sm font-semibold text-zinc-500 border-b-2 border-transparent hover:text-zinc-300 transition';
+      showAlert('', '');
+    }
+
+    function showAlert(msg, type) {
+      const box = document.getElementById('alertBox');
+      if (!msg) { box.classList.add('hidden'); return; }
+      box.textContent = msg;
+      box.className = type === 'error'
+        ? 'p-3 rounded-lg text-xs text-center font-medium bg-red-950/60 border border-red-800 text-red-300'
+        : 'p-3 rounded-lg text-xs text-center font-medium bg-emerald-950/60 border border-emerald-800 text-emerald-300';
+      box.classList.remove('hidden');
+    }
+
+    function setLoading(btnId, loading, label) {
+      const btn = document.getElementById(btnId);
+      btn.disabled = loading;
+      btn.textContent = loading ? 'Please wait...' : label;
+    }
+
+    async function handleLogin() {
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      if (!username || !password) { showAlert('Please fill in all fields.', 'error'); return; }
+      setLoading('loginBtn', true, 'Sign In');
       try {
         const res = await fetch('/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
         const data = await res.json();
         if (res.ok && data.token) {
           localStorage.setItem('fp_token', data.token);
+          localStorage.setItem('fp_username', data.username);
           window.location.href = '/';
         } else {
-          errAlert.textContent = data.error || 'Invalid credentials.';
-          errAlert.classList.remove('hidden');
+          showAlert(data.error || 'Login failed.', 'error');
         }
-      } catch(err) {
-        errAlert.textContent = 'Network error. Please try again.';
-        errAlert.classList.remove('hidden');
-      } finally {
-        document.getElementById('loginText').textContent = 'Sign In';
-        document.getElementById('loginBtn').disabled = false;
-      }
+      } catch(e) { showAlert('Network error. Please try again.', 'error'); }
+      finally { setLoading('loginBtn', false, 'Sign In'); }
+    }
+
+    async function handleSignup() {
+      const username = document.getElementById('signupUsername').value.trim();
+      const password = document.getElementById('signupPassword').value;
+      const confirm = document.getElementById('signupConfirm').value;
+      if (!username || !password || !confirm) { showAlert('Please fill in all fields.', 'error'); return; }
+      if (password !== confirm) { showAlert('Passwords do not match.', 'error'); return; }
+      setLoading('signupBtn', true, 'Create Account');
+      try {
+        const res = await fetch('/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+        const data = await res.json();
+        if (res.ok && data.token) {
+          localStorage.setItem('fp_token', data.token);
+          localStorage.setItem('fp_username', data.username);
+          window.location.href = '/';
+        } else {
+          showAlert(data.error || 'Signup failed.', 'error');
+        }
+      } catch(e) { showAlert('Network error. Please try again.', 'error'); }
+      finally { setLoading('signupBtn', false, 'Create Account'); }
     }
   </script>
 </body>
