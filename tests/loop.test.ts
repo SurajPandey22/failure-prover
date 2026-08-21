@@ -5,6 +5,10 @@ import { FailureContext, HypothesisStatus } from '../src/domain';
 import * as fs from 'fs';
 import * as path from 'path';
 
+import { Ledger } from '../src/ledger';
+import { HypothesisGenerator } from '../src/generator';
+import { Verifier } from '../src/verifier';
+
 describe('InvestigationLoop', () => {
   const dummyRepo = path.join(__dirname, 'dummy_repo_loop');
 
@@ -26,9 +30,12 @@ describe('InvestigationLoop', () => {
     llm.responses.push('read file dummy.txt');
     // 3. evaluate evidence
     llm.responses.push(`{"supports": true, "contradicts": false, "reason": "matches"}`);
+    // 4. verifier 
+    llm.responses.push(`{"status": "SUPPORTED"}`);
 
     const runner = new ExperimentRunner(dummyRepo);
-    const loop = new InvestigationLoop(llm, runner, null);
+    const ledger = new Ledger();
+    const loop = new InvestigationLoop(llm, runner, ledger);
     
     const ctx: FailureContext = { rawLog: '', sourceLocations: [], relevantLogLines: [] };
     const diagnosis = await loop.run(ctx);

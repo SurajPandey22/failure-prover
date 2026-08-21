@@ -1,0 +1,31 @@
+============================= test session starts ==============================
+collected 2 items
+
+tests/test_parser.py .F                                                    [100%]
+
+=================================== FAILURES ===================================
+___________________________ test_parse_header_auto ___________________________
+
+    def test_parse_header_auto():
+        # This will fail with a ValueError
+>       res = parse_header("2,Bob,AUTO")
+
+tests/test_parser.py:9: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+header_line = '2,Bob,AUTO'
+
+    def parse_header(header_line: str):
+        # Expects "ID,NAME,AGE"
+        parts = header_line.split(",")
+        if len(parts) != 3:
+            raise ValueError("Invalid header format")
+        
+        # Bug: assumes age is always an integer, but it can be "AUTO" in some files
+>       age = int(parts[2])
+E       ValueError: invalid literal for int() with base 10: 'AUTO'
+
+parser.py:8: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_parser.py::test_parse_header_auto - ValueError: invalid literal for int() with base 10: 'AUTO'
+========================= 1 failed, 1 passed in 0.05s ==========================
