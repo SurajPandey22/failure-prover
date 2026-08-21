@@ -159,7 +159,26 @@
           <div>
             <label for="exampleSelector" class="block text-xs text-zinc-400 mb-1.5 font-medium">Select Test Benchmark</label>
             <select id="exampleSelector" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-xs font-mono text-zinc-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer transition">
-              <option value="">Loading test cases...</option>
+              <option value="0">parser bug (./examples/parser_bug)</option>
+              <option value="1">boundary condition (./examples/boundary_condition)</option>
+              <option value="2">config missing (./examples/config_missing)</option>
+              <option value="3">data validation (./examples/data_validation)</option>
+              <option value="4">env var type (./examples/env_var_type)</option>
+              <option value="5">logic bug (./examples/logic_bug)</option>
+              <option value="6">path handling (./examples/path_handling)</option>
+              <option value="7">test expectation (./examples/test_expectation)</option>
+              <option value="8">generic case 1 (./examples/generic_case_1)</option>
+              <option value="9">generic case 2 (./examples/generic_case_2)</option>
+              <option value="10">generic case 3 (./examples/generic_case_3)</option>
+              <option value="11">generic case 4 (./examples/generic_case_4)</option>
+              <option value="12">generic case 5 (./examples/generic_case_5)</option>
+              <option value="13">generic case 6 (./examples/generic_case_6)</option>
+              <option value="14">generic case 7 (./examples/generic_case_7)</option>
+              <option value="15">generic case 8 (./examples/generic_case_8)</option>
+              <option value="16">generic case 9 (./examples/generic_case_9)</option>
+              <option value="17">generic case 10 (./examples/generic_case_10)</option>
+              <option value="18">generic case 11 (./examples/generic_case_11)</option>
+              <option value="19">generic case 12 (./examples/generic_case_12)</option>
             </select>
           </div>
 
@@ -167,7 +186,11 @@
           <div>
             <div class="text-[11px] text-zinc-500 mb-1.5 font-medium">Quick Select:</div>
             <div id="quickChips" class="flex flex-wrap gap-1.5">
-              <!-- Dynamically populated -->
+              <button type="button" onclick="selectChip(0)" class="px-2.5 py-1 rounded-md text-xs bg-zinc-800/80 border border-zinc-700 text-zinc-300 hover:border-blue-500 hover:text-blue-300 transition">parser_bug</button>
+              <button type="button" onclick="selectChip(1)" class="px-2.5 py-1 rounded-md text-xs bg-zinc-800/80 border border-zinc-700 text-zinc-300 hover:border-blue-500 hover:text-blue-300 transition">boundary_condition</button>
+              <button type="button" onclick="selectChip(2)" class="px-2.5 py-1 rounded-md text-xs bg-zinc-800/80 border border-zinc-700 text-zinc-300 hover:border-blue-500 hover:text-blue-300 transition">config_missing</button>
+              <button type="button" onclick="selectChip(3)" class="px-2.5 py-1 rounded-md text-xs bg-zinc-800/80 border border-zinc-700 text-zinc-300 hover:border-blue-500 hover:text-blue-300 transition">data_validation</button>
+              <button type="button" onclick="selectChip(4)" class="px-2.5 py-1 rounded-md text-xs bg-zinc-800/80 border border-zinc-700 text-zinc-300 hover:border-blue-500 hover:text-blue-300 transition">env_var_type</button>
             </div>
           </div>
 
@@ -191,7 +214,37 @@
 
           <textarea id="logInput" rows="11" 
             class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3.5 font-mono text-xs text-red-300/90 leading-relaxed focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-none"
-            placeholder="Paste pytest failure traceback here..."></textarea>
+            placeholder="Paste pytest failure traceback here...">============================= test session starts ==============================
+collected 2 items
+
+tests/test_parser.py .F                                                    [100%]
+
+=================================== FAILURES ===================================
+___________________________ test_parse_header_auto ___________________________
+
+    def test_parse_header_auto():
+        # This will fail with a ValueError
+>       res = parse_header("2,Bob,AUTO")
+
+tests/test_parser.py:9: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+header_line = '2,Bob,AUTO'
+
+    def parse_header(header_line: str):
+        # Expects "ID,NAME,AGE"
+        parts = header_line.split(",")
+        if len(parts) != 3:
+            raise ValueError("Invalid header format")
+        
+        # Bug: assumes age is always an integer, but it can be "AUTO" in some files
+>       age = int(parts[2])
+E       ValueError: invalid literal for int() with base 10: 'AUTO'
+
+parser.py:8: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_parser.py::test_parse_header_auto - ValueError: invalid literal for int() with base 10: 'AUTO'
+========================= 1 failed, 1 passed in 0.05s ==========================</textarea>
         </div>
 
         <!-- Main Action Trigger -->
