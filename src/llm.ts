@@ -53,10 +53,17 @@ export class GeminiLLM implements ILLMProvider {
         return response.text || '';
       } catch (e: any) {
         lastError = new Error(`LLM API Error: ${e.message}`);
-        const isRetryable = e.message?.includes('503') || e.message?.includes('UNAVAILABLE') || e.message?.includes('overloaded');
+        const isRetryable = e.message?.includes('503') || 
+                            e.message?.includes('UNAVAILABLE') || 
+                            e.message?.includes('overloaded') || 
+                            e.message?.includes('429') || 
+                            e.message?.includes('RESOURCE_EXHAUSTED') || 
+                            e.message?.includes('quota');
         if (isRetryable && attempt < MAX_RETRIES) {
-          const waitMs = 2000 * Math.pow(2, attempt - 1); // 2s, 4s, 8s
-          console.warn(`[LLM] Rate limited. Retrying in ${waitMs / 1000}s... (attempt ${attempt}/${MAX_RETRIES})`);
+          // If quota exceeded, wait a bit longer to reset the RPM bucket (e.g. 15s, 30s)
+          const isQuota = e.message?.includes('429') || e.message?.includes('RESOURCE_EXHAUSTED');
+          const waitMs = isQuota ? Math.max(15000, 10000 * attempt) : (2000 * Math.pow(2, attempt - 1));
+          console.warn(`[LLM] Rate limit or service busy. Pausing ${waitMs / 1000}s before retry... (attempt ${attempt}/${MAX_RETRIES})`);
           await new Promise(r => setTimeout(r, waitMs));
         } else {
           break;
