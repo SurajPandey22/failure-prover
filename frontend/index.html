@@ -1,240 +1,436 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Failure Prover - AI Debugger</title>
+  <title>Failure Prover — Autonomous AI Debugger</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'], mono: ['"JetBrains Mono"', 'Menlo', 'monospace'] },
+          colors: {
+            brand: { 50:'#eef2ff', 100:'#e0e7ff', 200:'#c7d2fe', 300:'#a5b4fc', 400:'#818cf8', 500:'#6366f1', 600:'#4f46e5', 700:'#4338ca', 800:'#3730a3', 900:'#312e81' },
+            surface: { 0:'#ffffff', 1:'#f8fafc', 2:'#f1f5f9', 3:'#e2e8f0' },
+            terminal: { bg:'#0f172a', fg:'#94a3b8', accent:'#38bdf8', green:'#4ade80', red:'#f87171', yellow:'#facc15' }
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.4s ease-out',
+            'slide-up': 'slideUp 0.5s ease-out',
+            'pulse-dot': 'pulseDot 1.4s ease-in-out infinite',
+          },
+          keyframes: {
+            fadeIn: { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
+            slideUp: { '0%': { opacity: 0, transform: 'translateY(12px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+            pulseDot: { '0%,100%': { opacity: 0.4 }, '50%': { opacity: 1 } },
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .terminal-scroll::-webkit-scrollbar-thumb { background: #334155; }
+    .terminal-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .diff-add { color: #4ade80; }
+    .diff-remove { color: #f87171; }
+    .diff-header { color: #38bdf8; }
+    textarea:focus, input:focus, select:focus { box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .glass { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  </style>
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans min-h-screen">
-  
-  <div class="max-w-5xl mx-auto p-6">
-    <header class="mb-8 border-b pb-4 flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-indigo-700">Failure Prover</h1>
-        <p class="text-gray-500 text-sm mt-1">Autonomous Verification-Driven AI Debugger</p>
+
+<body class="bg-surface-1 text-gray-800 font-sans min-h-screen antialiased">
+
+  <!-- Top Nav -->
+  <nav class="sticky top-0 z-50 bg-white/80 glass border-b border-surface-3" role="navigation" aria-label="Main navigation">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-md shadow-brand-500/25">
+          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-gray-900 leading-none tracking-tight">Failure Prover</h1>
+          <p class="text-[10px] text-gray-400 font-medium uppercase tracking-widest">Autonomous AI Debugger</p>
+        </div>
       </div>
-      <div class="text-sm px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full font-semibold">
-        Hackathon MVP
+      <div class="flex items-center gap-3">
+        <span id="statusBadge" class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-surface-2 text-gray-500 transition-all duration-300">
+          <span id="statusDot" class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+          <span id="statusText">Ready</span>
+        </span>
+        <a href="https://github.com/SurajPandey22/failure-prover" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-gray-700 transition-colors" aria-label="GitHub Repository">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        </a>
       </div>
-    </header>
+    </div>
+  </nav>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      
-      <!-- Input Column -->
-      <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">Investigation Target</h2>
-        
-        <label class="block text-sm font-medium text-gray-700 mb-1">Select Benchmark Case</label>
-        <select id="exampleSelector" class="w-full border border-gray-300 rounded p-2 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
-          <option value="">Loading examples...</option>
-        </select>
+  <!-- Main Layout -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
-        <label class="block text-sm font-medium text-gray-700 mb-1">Target Repository Path</label>
-        <input type="text" id="repoPath" value="./examples/parser_bug" 
-          class="w-full border border-gray-300 rounded p-2 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm">
+      <!-- LEFT: Input Panel (2 cols) -->
+      <section class="lg:col-span-2 space-y-4" aria-label="Investigation input">
 
-        <label class="block text-sm font-medium text-gray-700 mb-1">Pytest Failure Log</label>
-        <textarea id="logInput" class="w-full border border-gray-300 rounded p-2 h-48 font-mono text-sm mb-4 focus:ring-2 focus:ring-indigo-500 outline-none">
-============================= test session starts ==============================
-collected 2 items
-tests/test_parser.py .F                                                    [100%]
-=================================== FAILURES ===================================
-___________________________ test_parse_header_auto ___________________________
-    def test_parse_header_auto():
-        # This will fail with a ValueError
->       res = parse_header("2,Bob,AUTO")
-tests/test_parser.py:9: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-header_line = '2,Bob,AUTO'
-    def parse_header(header_line: str):
-        parts = header_line.split(",")
-        if len(parts) != 3:
-            raise ValueError("Invalid header format")
->       age = int(parts[2])
-E       ValueError: invalid literal for int() with base 10: 'AUTO'
-parser.py:8: ValueError
-=========================== short test summary info ============================
-FAILED tests/test_parser.py::test_parse_header_auto - ValueError: invalid literal for int() with base 10: 'AUTO'
-        </textarea>
-        
-        <button onclick="investigate()" id="runBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition">
-          Start Investigation
-        </button>
-      </div>
-
-      <!-- Output Column -->
-      <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 overflow-y-auto" style="max-height: 80vh;">
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">Investigation Results</h2>
-        
-        <div id="loading" class="hidden flex items-center justify-center h-32 space-x-2 text-indigo-600">
-          <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <span class="font-medium text-lg">Agents investigating...</span>
+        <!-- Benchmark Selector Card -->
+        <div class="bg-white rounded-xl border border-surface-3 shadow-sm overflow-hidden">
+          <div class="px-5 py-3.5 border-b border-surface-3 bg-surface-1">
+            <h2 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <svg class="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+              Investigation Target
+            </h2>
+          </div>
+          <div class="p-5 space-y-4">
+            <div>
+              <label for="exampleSelector" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">Benchmark Case</label>
+              <select id="exampleSelector" aria-label="Select benchmark case" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:border-brand-400 focus:ring-brand-400 outline-none transition-all duration-200 cursor-pointer hover:border-gray-300">
+                <option value="">Loading examples…</option>
+              </select>
+            </div>
+            <div>
+              <label for="repoPath" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">Repository Path</label>
+              <input type="text" id="repoPath" value="./examples/parser_bug" aria-label="Repository path"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 font-mono text-sm bg-surface-1 focus:border-brand-400 focus:ring-brand-400 outline-none transition-all duration-200">
+            </div>
+          </div>
         </div>
 
-        <div id="results" class="hidden">
-          
-          <div class="mb-6 p-4 bg-indigo-50 border-l-4 border-indigo-500 rounded-r">
-            <h3 class="text-sm uppercase tracking-wider text-indigo-800 font-bold mb-1">Final Diagnosis</h3>
-            <p id="rootCause" class="text-gray-900 font-medium"></p>
-            <div class="mt-2 text-xs font-semibold px-2 py-1 bg-white inline-block rounded text-indigo-700 border border-indigo-200">
-              Confidence: <span id="confidenceLevel"></span>
+        <!-- Failure Log Card -->
+        <div class="bg-white rounded-xl border border-surface-3 shadow-sm overflow-hidden">
+          <div class="px-5 py-3.5 border-b border-surface-3 bg-surface-1">
+            <h2 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <svg class="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              Pytest Failure Log
+            </h2>
+          </div>
+          <div class="p-4">
+            <textarea id="logInput" rows="14" aria-label="Paste pytest failure log here"
+              class="w-full border border-gray-200 rounded-lg px-3 py-2.5 font-mono text-xs leading-relaxed bg-surface-1 focus:border-brand-400 focus:ring-brand-400 outline-none transition-all duration-200 resize-none"
+              placeholder="Paste your pytest failure log here…"></textarea>
+          </div>
+        </div>
+
+        <!-- Run Button -->
+        <button onclick="investigate()" id="runBtn" aria-label="Start investigation"
+          class="w-full relative overflow-hidden bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 active:scale-[0.98] text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-brand-500/20 hover:shadow-brand-500/30 transition-all duration-200 flex items-center justify-center gap-2 text-sm">
+          <svg id="btnIcon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <svg id="btnSpinner" class="w-4 h-4 animate-spin hidden" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+          <span id="btnText">Start Investigation</span>
+        </button>
+      </section>
+
+      <!-- RIGHT: Output Panel (3 cols) -->
+      <section class="lg:col-span-3 space-y-4" aria-label="Investigation results">
+
+        <!-- Live Agent Terminal -->
+        <div class="bg-terminal-bg rounded-xl border border-gray-700/50 shadow-lg overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-700/50">
+            <div class="flex items-center gap-2">
+              <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-400/80"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-400/80"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-400/80"></span>
+              </div>
+              <span class="text-[11px] font-mono text-terminal-fg/60 ml-2">agent-terminal</span>
+            </div>
+            <span id="terminalStatus" class="text-[10px] font-mono text-terminal-fg/40 uppercase tracking-wider">idle</span>
+          </div>
+          <div id="terminalOutput" class="p-4 h-48 overflow-y-auto font-mono text-xs leading-relaxed text-terminal-fg terminal-scroll" role="log" aria-live="polite" aria-label="Live agent output">
+            <div class="text-terminal-fg/30 select-none">Awaiting investigation…</div>
+          </div>
+        </div>
+
+        <!-- Results Panel (hidden initially) -->
+        <div id="results" class="hidden space-y-4 animate-fade-in">
+
+          <!-- Diagnosis Card -->
+          <div class="bg-white rounded-xl border border-surface-3 shadow-sm overflow-hidden animate-slide-up">
+            <div class="px-5 py-3.5 border-b border-surface-3 bg-gradient-to-r from-brand-50 to-white">
+              <h3 class="text-sm font-semibold text-brand-800 flex items-center gap-2">
+                <svg class="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Final Diagnosis
+              </h3>
+            </div>
+            <div class="p-5">
+              <p id="rootCause" class="text-gray-900 font-medium text-sm leading-relaxed"></p>
+              <div class="mt-3 flex items-center gap-2">
+                <span id="confidenceBadge" class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full"></span>
+                <span id="stepCount" class="text-xs text-gray-400"></span>
+              </div>
             </div>
           </div>
 
-          <div id="fixContainer" class="hidden mb-6 p-4 bg-gray-900 border-l-4 border-green-500 rounded-r shadow-inner">
-            <h3 class="text-sm uppercase tracking-wider text-green-400 font-bold mb-2">Suggested Fix (Git Diff)</h3>
-            <pre id="suggestedFix" class="text-gray-300 font-mono text-xs overflow-x-auto whitespace-pre-wrap"></pre>
+          <!-- Suggested Fix Card -->
+          <div id="fixContainer" class="hidden bg-terminal-bg rounded-xl border border-gray-700/50 shadow-lg overflow-hidden animate-slide-up">
+            <div class="flex items-center justify-between px-5 py-3 border-b border-gray-700/50">
+              <h3 class="text-sm font-semibold text-terminal-green flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                Suggested Fix
+              </h3>
+              <button onclick="copyFix()" class="text-[11px] font-mono text-terminal-fg/50 hover:text-terminal-accent transition-colors px-2 py-1 rounded hover:bg-white/5" aria-label="Copy fix to clipboard">
+                Copy
+              </button>
+            </div>
+            <pre id="suggestedFix" class="p-4 text-xs font-mono leading-relaxed overflow-x-auto terminal-scroll"></pre>
           </div>
 
-          <h3 class="font-bold text-gray-700 mb-2 border-b pb-1">Evaluated Hypotheses</h3>
-          <div id="hypotheses" class="space-y-3 mb-6"></div>
+          <!-- Hypotheses Card -->
+          <div class="bg-white rounded-xl border border-surface-3 shadow-sm overflow-hidden animate-slide-up">
+            <div class="px-5 py-3.5 border-b border-surface-3 bg-surface-1">
+              <h3 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                Hypotheses
+              </h3>
+            </div>
+            <div id="hypotheses" class="p-4 space-y-2"></div>
+          </div>
 
-          <h3 class="font-bold text-gray-700 mb-2 border-b pb-1">Evidence Ledger</h3>
-          <div id="evidence" class="space-y-3 text-sm"></div>
+          <!-- Evidence Ledger Card -->
+          <div class="bg-white rounded-xl border border-surface-3 shadow-sm overflow-hidden animate-slide-up">
+            <div class="px-5 py-3.5 border-b border-surface-3 bg-surface-1">
+              <h3 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <svg class="w-4 h-4 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                Evidence Ledger
+              </h3>
+            </div>
+            <div id="evidence" class="p-4 space-y-2"></div>
+          </div>
         </div>
 
-        <div id="errorBox" class="hidden mt-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r text-sm"></div>
+        <!-- Error Box -->
+        <div id="errorBox" role="alert" class="hidden bg-red-50 rounded-xl border border-red-200 p-4 text-sm text-red-700 font-medium animate-fade-in flex items-start gap-3">
+          <svg class="w-5 h-5 text-red-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span id="errorText"></span>
+        </div>
 
-      </div>
+      </section>
     </div>
-  </div>
+  </main>
 
-  <script>
-    let loadedExamples = [];
+  <!-- Footer -->
+  <footer class="border-t border-surface-3 mt-12 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between text-xs text-gray-400">
+      <span>Built from scratch — Node.js + TypeScript + Gemini</span>
+      <span>No LangChain · No CrewAI · No Vector DB</span>
+    </div>
+  </footer>
 
-    async function loadExamples() {
-      try {
-        const res = await fetch('/examples');
-        loadedExamples = await res.json();
-        
-        const selector = document.getElementById('exampleSelector');
-        selector.innerHTML = loadedExamples.map((ex, i) => `<option value="${i}">${ex.name}</option>`).join('');
-        
-        selector.addEventListener('change', (e) => {
-          const ex = loadedExamples[e.target.value];
-          if (ex) {
-            document.getElementById('repoPath').value = ex.path;
-            document.getElementById('logInput').value = ex.log;
-          }
-        });
+<script>
+  // ─── State ──────────────────────────────────────────────
+  let loadedExamples = [];
 
-        // Trigger change for the first one
-        if (loadedExamples.length > 0) {
-          selector.value = "0";
-          selector.dispatchEvent(new Event('change'));
+  // ─── Boot ───────────────────────────────────────────────
+  loadExamples();
+
+  async function loadExamples() {
+    try {
+      const res = await fetch('/examples');
+      loadedExamples = await res.json();
+      const sel = document.getElementById('exampleSelector');
+      sel.innerHTML = loadedExamples.map((ex, i) =>
+        `<option value="${i}">${ex.name.replace(/_/g,' ')}</option>`
+      ).join('');
+      sel.addEventListener('change', e => {
+        const ex = loadedExamples[e.target.value];
+        if (ex) {
+          document.getElementById('repoPath').value = ex.path;
+          document.getElementById('logInput').value = ex.log;
         }
-      } catch (e) {
-        console.error('Failed to load examples', e);
-      }
-    }
+      });
+      if (loadedExamples.length) { sel.value = '0'; sel.dispatchEvent(new Event('change')); }
+    } catch (e) { console.error('Failed to load examples', e); }
+  }
 
-    // Call load on boot
-    loadExamples();
+  // ─── Investigate ────────────────────────────────────────
+  async function investigate() {
+    const btn     = document.getElementById('runBtn');
+    const results = document.getElementById('results');
+    const errBox  = document.getElementById('errorBox');
+    const term    = document.getElementById('terminalOutput');
 
-    async function investigate() {
-      const btn = document.getElementById('runBtn');
-      const resultsDiv = document.getElementById('results');
-      const loadingDiv = document.getElementById('loading');
-      const errorBox = document.getElementById('errorBox');
-      const terminal = document.getElementById('terminalOutput');
-      
-      btn.disabled = true;
-      btn.classList.add('opacity-50');
-      resultsDiv.classList.add('hidden');
-      errorBox.classList.add('hidden');
-      loadingDiv.classList.remove('hidden');
-      terminal.innerHTML = '';
-      
-      const log = document.getElementById('logInput').value;
-      const repoPath = document.getElementById('repoPath').value;
-      
-      try {
-        const res = await fetch('/investigate-stream', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ log, repoPath })
-        });
-        
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let done = false;
-        
-        while (!done) {
-          const { value, done: readerDone } = await reader.read();
-          done = readerDone;
-          if (value) {
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n\n');
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = JSON.parse(line.substring(6));
-                
-                if (data.type === 'progress') {
-                  terminal.innerHTML += `<div>> ${data.message}</div>`;
-                  terminal.scrollTop = terminal.scrollHeight;
-                } else if (data.type === 'complete') {
-                  loadingDiv.classList.add('hidden');
-                  resultsDiv.classList.remove('hidden');
-                  renderResults(data);
-                } else if (data.type === 'error') {
-                  throw new Error(data.message);
-                }
-              }
+    setButtonLoading(true);
+    setStatus('investigating', 'Investigating…');
+    results.classList.add('hidden');
+    errBox.classList.add('hidden');
+    term.innerHTML = '';
+    appendTerminal('Starting autonomous investigation…', 'text-terminal-accent');
+
+    const log      = document.getElementById('logInput').value;
+    const repoPath = document.getElementById('repoPath').value;
+
+    try {
+      const res = await fetch('/investigate-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ log, repoPath })
+      });
+
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let done = false;
+
+      while (!done) {
+        const { value, done: d } = await reader.read();
+        done = d;
+        if (!value) continue;
+        const chunk = decoder.decode(value, { stream: true });
+        for (const line of chunk.split('\n\n')) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const data = JSON.parse(line.substring(6));
+            if (data.type === 'progress') {
+              const color = data.message.includes('Verifier verdict') ? 'text-terminal-green'
+                          : data.message.includes('failed') ? 'text-terminal-red'
+                          : data.message.includes('Step') ? 'text-terminal-accent'
+                          : '';
+              appendTerminal(data.message, color);
+            } else if (data.type === 'complete') {
+              results.classList.remove('hidden');
+              renderResults(data);
+              setStatus('complete', 'Complete');
+              appendTerminal('\n✓ Investigation complete.', 'text-terminal-green font-bold');
+            } else if (data.type === 'error') {
+              throw new Error(data.message);
             }
+          } catch (parseErr) {
+            if (parseErr.message && !parseErr.message.includes('JSON')) throw parseErr;
           }
         }
-
-      } catch (err) {
-        loadingDiv.classList.add('hidden');
-        errorBox.classList.remove('hidden');
-        errorBox.innerText = 'Error: ' + err.message;
-      } finally {
-        btn.disabled = false;
-        btn.classList.remove('opacity-50');
       }
+    } catch (err) {
+      errBox.classList.remove('hidden');
+      document.getElementById('errorText').innerText = err.message;
+      setStatus('error', 'Error');
+      appendTerminal('✗ ' + err.message, 'text-terminal-red');
+    } finally {
+      setButtonLoading(false);
     }
+  }
 
-    function renderResults(data) {
-      document.getElementById('rootCause').innerText = data.diagnosis.rootCause;
-      document.getElementById('confidenceLevel').innerText = data.diagnosis.confidence;
-      
-      const fixContainer = document.getElementById('fixContainer');
-      if (data.diagnosis.suggestedFix) {
-        fixContainer.classList.remove('hidden');
-        document.getElementById('suggestedFix').innerText = data.diagnosis.suggestedFix;
-      } else {
-        fixContainer.classList.add('hidden');
-      }
-      
-      const getStatusColor = (status) => {
-        if (status === 'SUPPORTED') return 'bg-green-100 border-green-400 text-green-800';
-        if (status === 'REJECTED') return 'bg-red-100 border-red-400 text-red-800';
-        if (status === 'INCONCLUSIVE') return 'bg-yellow-100 border-yellow-400 text-yellow-800';
-        return 'bg-gray-100 border-gray-400 text-gray-800';
-      };
+  // ─── Render Results ─────────────────────────────────────
+  function renderResults(data) {
+    document.getElementById('rootCause').innerText = data.diagnosis.rootCause;
 
-      document.getElementById('hypotheses').innerHTML = data.hypotheses.map(h => `
-        <div class="p-3 border-l-4 rounded-r shadow-sm ${getStatusColor(h.status)}">
-          <span class="font-bold text-xs uppercase block mb-1">${h.status}</span>
-          <span class="text-sm">${h.statement}</span>
+    const badge = document.getElementById('confidenceBadge');
+    const conf  = data.diagnosis.confidence;
+    badge.textContent = conf;
+    badge.className = 'inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full '
+      + (conf === 'HIGH' ? 'bg-green-100 text-green-700' : conf === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700');
+
+    document.getElementById('stepCount').textContent =
+      data.evidence ? data.evidence.length + ' evidence items collected' : '';
+
+    // Fix
+    const fixC = document.getElementById('fixContainer');
+    if (data.diagnosis.suggestedFix) {
+      fixC.classList.remove('hidden');
+      document.getElementById('suggestedFix').innerHTML = colorDiff(data.diagnosis.suggestedFix);
+    } else { fixC.classList.add('hidden'); }
+
+    // Hypotheses
+    const statusConfig = {
+      SUPPORTED:    { bg:'bg-green-50', border:'border-green-400', text:'text-green-700', icon:'✓' },
+      REJECTED:     { bg:'bg-red-50', border:'border-red-400', text:'text-red-700', icon:'✗' },
+      INCONCLUSIVE: { bg:'bg-amber-50', border:'border-amber-400', text:'text-amber-700', icon:'?' },
+      PENDING:      { bg:'bg-gray-50', border:'border-gray-300', text:'text-gray-500', icon:'…' }
+    };
+    document.getElementById('hypotheses').innerHTML = (data.hypotheses || []).map(h => {
+      const s = statusConfig[h.status] || statusConfig.PENDING;
+      return `<div class="flex items-start gap-3 p-3 rounded-lg border-l-[3px] ${s.border} ${s.bg} transition-all duration-200">
+        <span class="text-base font-bold ${s.text} mt-0.5 w-5 text-center shrink-0">${s.icon}</span>
+        <div class="min-w-0">
+          <span class="text-[10px] font-bold uppercase tracking-wider ${s.text}">${h.status}</span>
+          <p class="text-sm text-gray-700 mt-0.5 leading-snug">${h.statement}</p>
         </div>
-      `).join('');
+      </div>`;
+    }).join('');
 
-      document.getElementById('evidence').innerHTML = data.evidence.map(e => `
-        <div class="bg-gray-50 p-3 rounded border border-gray-200 font-mono text-xs">
-          <div class="text-indigo-600 font-bold mb-1">$&gt; ${e.source}</div>
-          <div class="text-gray-600 mb-2 truncate">${e.content}</div>
-          <div class="flex space-x-2">
-            ${e.supports ? '<span class="bg-green-100 text-green-800 px-1 rounded">Supports</span>' : ''}
-            ${e.contradicts ? '<span class="bg-red-100 text-red-800 px-1 rounded">Contradicts</span>' : ''}
-          </div>
+    // Evidence
+    document.getElementById('evidence').innerHTML = (data.evidence || []).map(e => `
+      <div class="p-3 rounded-lg bg-surface-1 border border-surface-3 hover:border-gray-300 transition-colors duration-150">
+        <div class="flex items-center gap-2 mb-1.5">
+          <code class="text-xs font-mono text-brand-600 font-semibold truncate">$ ${e.source}</code>
         </div>
-      `).join('');
-    }
-  </script>
+        <p class="text-xs text-gray-500 font-mono truncate mb-2">${e.content}</p>
+        <div class="flex gap-1.5">
+          ${e.supports ? '<span class="text-[10px] font-bold uppercase tracking-wider text-green-600 bg-green-50 px-1.5 py-0.5 rounded">Supports</span>' : ''}
+          ${e.contradicts ? '<span class="text-[10px] font-bold uppercase tracking-wider text-red-600 bg-red-50 px-1.5 py-0.5 rounded">Contradicts</span>' : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ─── Helpers ────────────────────────────────────────────
+  function appendTerminal(msg, extraClass = '') {
+    const term = document.getElementById('terminalOutput');
+    const first = term.querySelector('.select-none');
+    if (first) first.remove();
+    const div = document.createElement('div');
+    div.className = 'py-0.5 ' + extraClass;
+    div.textContent = '› ' + msg;
+    term.appendChild(div);
+    term.scrollTop = term.scrollHeight;
+    document.getElementById('terminalStatus').textContent = 'streaming';
+  }
+
+  function setButtonLoading(loading) {
+    const btn = document.getElementById('runBtn');
+    document.getElementById('btnIcon').classList.toggle('hidden', loading);
+    document.getElementById('btnSpinner').classList.toggle('hidden', !loading);
+    document.getElementById('btnText').textContent = loading ? 'Investigating…' : 'Start Investigation';
+    btn.disabled = loading;
+    btn.classList.toggle('pointer-events-none', loading);
+    btn.classList.toggle('opacity-70', loading);
+  }
+
+  function setStatus(state, text) {
+    const dot = document.getElementById('statusDot');
+    const badge = document.getElementById('statusBadge');
+    const label = document.getElementById('statusText');
+    label.textContent = text;
+    dot.className = 'w-1.5 h-1.5 rounded-full '
+      + (state === 'investigating' ? 'bg-amber-400 animate-pulse-dot'
+      : state === 'complete' ? 'bg-green-500'
+      : state === 'error' ? 'bg-red-500'
+      : 'bg-gray-400');
+    badge.className = 'inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full transition-all duration-300 '
+      + (state === 'investigating' ? 'bg-amber-50 text-amber-700'
+      : state === 'complete' ? 'bg-green-50 text-green-700'
+      : state === 'error' ? 'bg-red-50 text-red-700'
+      : 'bg-surface-2 text-gray-500');
+    document.getElementById('terminalStatus').textContent =
+      state === 'investigating' ? 'streaming' : state;
+  }
+
+  function colorDiff(text) {
+    return text.split('\n').map(line => {
+      if (line.startsWith('+++') || line.startsWith('---') || line.startsWith('@@'))
+        return `<span class="diff-header">${esc(line)}</span>`;
+      if (line.startsWith('+')) return `<span class="diff-add">${esc(line)}</span>`;
+      if (line.startsWith('-')) return `<span class="diff-remove">${esc(line)}</span>`;
+      return `<span class="text-terminal-fg/70">${esc(line)}</span>`;
+    }).join('\n');
+  }
+
+  function esc(s) {
+    const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+  }
+
+  function copyFix() {
+    const text = document.getElementById('suggestedFix').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = event.target;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+  }
+</script>
 </body>
 </html>
