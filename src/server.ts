@@ -8,11 +8,57 @@ import { InvestigationLoop } from './loop';
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ─── Auth Config ─────────────────────────────────────────────────────────────
+const ADMIN_USERNAME = process.env.APP_USERNAME || 'admin';
+const ADMIN_PASSWORD = process.env.APP_PASSWORD || 'demo1234';
+const activeSessions = new Set<string>();
+
+function generateToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function authMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  // Skip auth for login endpoint and health check
+  if (req.path === '/login' || req.path === '/health') {
+    return next();
+  }
+  const token = req.headers['x-auth-token'] as string || req.query.token as string;
+  if (!token || !activeSessions.has(token)) {
+    return res.status(401).json({ error: 'Unauthorized. Please log in.' });
+  }
+  next();
+}
+
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    const token = generateToken();
+    activeSessions.add(token);
+    return res.json({ success: true, token });
+  }
+  return res.status(401).json({ error: 'Invalid username or password.' });
+});
+
+app.post('/logout', (req, res) => {
+  const token = req.headers['x-auth-token'] as string;
+  if (token) activeSessions.delete(token);
+  return res.json({ success: true });
+});
+
+// Apply auth to all API routes (not static files)
+app.use('/investigate', authMiddleware);
+app.use('/investigate-stream', authMiddleware);
+app.use('/apply-patch', authMiddleware);
+app.use('/export-report', authMiddleware);
+app.use('/examples', authMiddleware);
+
+// ─── Static Frontend ──────────────────────────────────────────────────────────
 const frontendPath = fs.existsSync(path.resolve(process.cwd(), 'frontend'))
   ? path.resolve(process.cwd(), 'frontend')
   : path.resolve(__dirname, '../../frontend');
