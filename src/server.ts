@@ -6,13 +6,17 @@ import { ExperimentRunner } from './execution';
 import { Ledger } from './ledger';
 import { InvestigationLoop } from './loop';
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static('frontend'));
 
-import * as fs from 'fs';
-import * as path from 'path';
+const frontendPath = fs.existsSync(path.resolve(process.cwd(), 'frontend'))
+  ? path.resolve(process.cwd(), 'frontend')
+  : path.resolve(__dirname, '../../frontend');
+app.use(express.static(frontendPath));
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -20,8 +24,22 @@ app.get('/health', (req, res) => {
 
 app.get('/examples', (req, res) => {
   try {
-    const examplesDir = path.join(__dirname, '../examples');
-    const dirs = fs.readdirSync(examplesDir).filter(f => fs.statSync(path.join(examplesDir, f)).isDirectory());
+    let examplesDir = path.resolve(process.cwd(), 'examples');
+    if (!fs.existsSync(examplesDir)) {
+      examplesDir = path.resolve(__dirname, '../../examples');
+    }
+    if (!fs.existsSync(examplesDir)) {
+      examplesDir = path.resolve(__dirname, '../examples');
+    }
+
+    if (!fs.existsSync(examplesDir)) {
+      return res.json([]);
+    }
+
+    const dirs = fs.readdirSync(examplesDir).filter(f => {
+      const full = path.join(examplesDir, f);
+      return fs.existsSync(full) && fs.statSync(full).isDirectory();
+    });
     
     const examples = dirs.map(d => {
       const logPath = path.join(examplesDir, d, 'failure.log');
