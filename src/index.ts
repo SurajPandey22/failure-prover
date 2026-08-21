@@ -5,6 +5,7 @@ import { GeminiLLM } from './llm';
 import { ExperimentRunner } from './execution';
 import { Ledger } from './ledger';
 import { InvestigationLoop } from './loop';
+import { ReportGenerator } from './report';
 
 const colors = {
   reset: "\x1b[0m",
@@ -78,6 +79,17 @@ async function main() {
   } else {
     console.log(`\n${colors.red}No confident fix could be generated.${colors.reset}\n`);
   }
+
+  // Generate and save investigation report
+  const reportMd = ReportGenerator.generateMarkdown(
+    repoPath, 
+    diagnosis, 
+    ledger.getAllHypotheses(), 
+    ledger.getAllEvidence()
+  );
+  const reportPath = path.join(repoPath, 'investigation_report.md');
+  fs.writeFileSync(reportPath, reportMd);
+  console.log(`\n${colors.bright}📝 Detailed investigation report saved to: ${colors.cyan}${reportPath}${colors.reset}\n`);
 }
 
 main().catch(e => {
