@@ -22,18 +22,22 @@ export class FakeLLM implements ILLMProvider {
 
 export class GeminiLLM implements ILLMProvider {
   private ai: GoogleGenAI;
+  private apiKey: string;
 
   constructor() {
-    const apiKey = process.env.GEMINI_API_KEY || '';
-    if (!apiKey && process.env.NODE_ENV !== 'test') {
+    this.apiKey = process.env.GEMINI_API_KEY || '';
+    if (!this.apiKey && process.env.NODE_ENV !== 'test') {
       console.warn('GEMINI_API_KEY environment variable is not set.');
     }
     
     // Initialize the official Google GenAI SDK
-    this.ai = new GoogleGenAI({ apiKey });
+    this.ai = new GoogleGenAI({ apiKey: this.apiKey });
   }
 
   async generate(request: LLMRequest): Promise<string> {
+    if (!this.apiKey) {
+      throw new Error('API Key is missing');
+    }
     const MAX_RETRIES = 4;
     let lastError: Error = new Error('Unknown error');
 
