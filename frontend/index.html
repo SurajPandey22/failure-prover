@@ -362,44 +362,303 @@
 
   <!-- SCRIPT ENGINE -->
   <script>
-    let loadedExamples = [];
+    const BUILTIN_PRESETS = [
+      {
+        name: "parser_bug",
+        path: "./examples/parser_bug",
+        log: `============================= test session starts ==============================
+collected 2 items
+
+tests/test_parser.py .F                                                    [100%]
+
+=================================== FAILURES ===================================
+___________________________ test_parse_header_auto ___________________________
+
+    def test_parse_header_auto():
+        # This will fail with a ValueError
+>       res = parse_header("2,Bob,AUTO")
+
+tests/test_parser.py:9: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+header_line = '2,Bob,AUTO'
+
+    def parse_header(header_line: str):
+        # Expects "ID,NAME,AGE"
+        parts = header_line.split(",")
+        if len(parts) != 3:
+            raise ValueError("Invalid header format")
+        
+        # Bug: assumes age is always an integer, but it can be "AUTO" in some files
+>       age = int(parts[2])
+E       ValueError: invalid literal for int() with base 10: 'AUTO'
+
+parser.py:8: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_parser.py::test_parse_header_auto - ValueError: invalid literal for int() with base 10: 'AUTO'
+========================= 1 failed, 1 passed in 0.05s ==========================`
+      },
+      {
+        name: "boundary_condition",
+        path: "./examples/boundary_condition",
+        log: `============================= test session starts ==============================
+collected 2 items
+
+tests/test_main.py .F                                                     [100%]
+
+=================================== FAILURES ===================================
+_______________________________ test_boundary __________________________________
+
+    def test_boundary():
+>       assert process_items([]) == 0
+
+tests/test_main.py:5: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def process_items(items):
+>       return items[0] * 2
+E       IndexError: list index out of range
+
+main.py:2: IndexError
+=========================== short test summary info ============================
+FAILED tests/test_main.py::test_boundary - IndexError: list index out of range
+========================= 1 failed, 1 passed in 0.04s ==========================`
+      },
+      {
+        name: "config_missing",
+        path: "./examples/config_missing",
+        log: `============================= test session starts ==============================
+collected 2 items
+
+tests/test_main.py .F                                                     [100%]
+
+=================================== FAILURES ===================================
+______________________________ test_missing_config _____________________________
+
+    def test_missing_config():
+>       load_config({})
+
+tests/test_main.py:5: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def load_config(cfg):
+>       return cfg["timeout"]
+E       KeyError: 'timeout'
+
+main.py:2: KeyError
+=========================== short test summary info ============================
+FAILED tests/test_main.py::test_missing_config - KeyError: 'timeout'
+========================= 1 failed, 1 passed in 0.04s ==========================`
+      },
+      {
+        name: "data_validation",
+        path: "./examples/data_validation",
+        log: `============================= test session starts ==============================
+collected 2 items
+
+tests/test_main.py .F                                                     [100%]
+
+=================================== FAILURES ===================================
+______________________________ test_invalid_email ______________________________
+
+    def test_invalid_email():
+>       validate_user("alice", "not-an-email")
+
+tests/test_main.py:5: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def validate_user(name, email):
+        if "@" not in email:
+>           raise ValueError("Invalid email format")
+E           ValueError: Invalid email format
+
+main.py:3: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_main.py::test_invalid_email - ValueError: Invalid email format
+========================= 1 failed, 1 passed in 0.04s ==========================`
+      },
+      {
+        name: "env_var_type",
+        path: "./examples/env_var_type",
+        log: `============================= test session starts ==============================
+collected 2 items
+
+tests/test_main.py .F                                                     [100%]
+
+=================================== FAILURES ===================================
+______________________________ test_port_conversion ____________________________
+
+    def test_port_conversion():
+>       get_server_url("8080")
+
+tests/test_main.py:5: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def get_server_url(port):
+>       return "http://localhost:" + int(port)
+E       TypeError: can only concatenate str (not "int") to str
+
+main.py:2: TypeError
+=========================== short test summary info ============================
+FAILED tests/test_main.py::test_port_conversion - TypeError: can only concatenate str (not "int") to str
+========================= 1 failed, 1 passed in 0.04s ==========================`
+      },
+      {
+        name: "logic_bug",
+        path: "./examples/logic_bug",
+        log: `============================= test session starts ==============================
+collected 2 items
+
+tests/test_main.py .F                                                     [100%]
+
+=================================== FAILURES ===================================
+______________________________ test_calculation ________________________________
+
+    def test_calculation():
+>       assert calculate_discount(100, 0.1) == 90
+
+tests/test_main.py:5: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def calculate_discount(price, rate):
+>       return price - (price * rate * 0.5) # Bug: wrong multiplier
+E       AssertionError: assert 95.0 == 90
+
+main.py:2: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_main.py::test_calculation - AssertionError: assert 95.0 == 90
+========================= 1 failed, 1 passed in 0.04s ==========================`
+      },
+      {
+        name: "path_handling",
+        path: "./examples/path_handling",
+        log: `============================= test session starts ==============================
+collected 2 items
+
+tests/test_main.py .F                                                     [100%]
+
+=================================== FAILURES ===================================
+_______________________________ test_open_file _________________________________
+
+    def test_open_file():
+>       read_config_file("config.json")
+
+tests/test_main.py:5: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def read_config_file(filename):
+>       with open("/etc/" + filename, "r") as f:
+E       FileNotFoundError: [Errno 2] No such file or directory: '/etc/config.json'
+
+main.py:2: FileNotFoundError
+=========================== short test summary info ============================
+FAILED tests/test_main.py::test_open_file - FileNotFoundError: [Errno 2] No such file or directory: '/etc/config.json'
+========================= 1 failed, 1 passed in 0.04s ==========================`
+      },
+      {
+        name: "test_expectation",
+        path: "./examples/test_expectation",
+        log: `============================= test session starts ==============================
+collected 2 items
+
+tests/test_main.py .F                                                     [100%]
+
+=================================== FAILURES ===================================
+_____________________________ test_is_admin_check ______________________________
+
+    def test_is_admin_check():
+>       assert check_permission("guest") == False
+
+tests/test_main.py:5: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def check_permission(role):
+>       return True # Bug: always returns True
+E       AssertionError: assert True == False
+
+main.py:2: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_main.py::test_is_admin_check - AssertionError: assert True == False
+========================= 1 failed, 1 passed in 0.04s ==========================`
+      }
+    ];
+
+    for (let i = 1; i <= 12; i++) {
+      BUILTIN_PRESETS.push({
+        name: `generic_case_${i}`,
+        path: `./examples/generic_case_${i}`,
+        log: `============================= test session starts ==============================
+collected 2 items
+
+tests/test_main.py .F                                                     [100%]
+
+=================================== FAILURES ===================================
+______________________________ test_case_${i} _______________________________
+
+    def test_case_${i}():
+>       assert execute_job_${i}() == 0
+
+tests/test_main.py:5: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def execute_job_${i}():
+>       raise RuntimeError("Unhandled error in task execution pipeline ${i}")
+E       RuntimeError: Unhandled error in task execution pipeline ${i}
+
+main.py:2: RuntimeError
+=========================== short test summary info ============================
+FAILED tests/test_main.py::test_case_${i} - RuntimeError: Unhandled error in task execution pipeline ${i}
+========================= 1 failed, 1 passed in 0.04s ==========================`
+      });
+    }
+
+    let loadedExamples = [...BUILTIN_PRESETS];
     let currentData = null;
     let timerInterval = null;
     let startTime = 0;
 
-    // Boot
+    // Instant Boot
     window.addEventListener('DOMContentLoaded', () => {
-      loadExamples();
+      renderExamplesList(loadedExamples);
+      loadExamplesFromServer();
     });
 
-    async function loadExamples() {
+    function renderExamplesList(examples) {
+      if (!examples || examples.length === 0) return;
+      
+      const sel = document.getElementById('exampleSelector');
+      sel.innerHTML = examples.map((ex, i) =>
+        `<option value="${i}">${ex.name.replace(/_/g, ' ')} (${ex.path})</option>`
+      ).join('');
+
+      // Quick Chips
+      const chipsContainer = document.getElementById('quickChips');
+      const popularChips = examples.slice(0, 5);
+      chipsContainer.innerHTML = popularChips.map((ex, i) =>
+        `<button type="button" onclick="selectChip(${i})" class="px-2.5 py-1 rounded-md text-xs bg-zinc-800/80 border border-zinc-700 text-zinc-300 hover:border-blue-500 hover:text-blue-300 transition">
+          ${ex.name}
+        </button>`
+      ).join('');
+
+      sel.onchange = (e) => {
+        selectChip(e.target.value);
+      };
+
+      selectChip(0);
+    }
+
+    async function loadExamplesFromServer() {
       try {
         const res = await fetch('/examples');
-        loadedExamples = await res.json();
-        
-        const sel = document.getElementById('exampleSelector');
-        sel.innerHTML = loadedExamples.map((ex, i) =>
-          `<option value="${i}">${ex.name.replace(/_/g, ' ')} (${ex.path})</option>`
-        ).join('');
-
-        // Quick Chips
-        const chipsContainer = document.getElementById('quickChips');
-        const popularChips = loadedExamples.slice(0, 5);
-        chipsContainer.innerHTML = popularChips.map((ex, i) =>
-          `<button type="button" onclick="selectChip(${i})" class="px-2.5 py-1 rounded-md text-xs bg-zinc-800/80 border border-zinc-700 text-zinc-300 hover:border-blue-500 hover:text-blue-300 transition">
-            ${ex.name}
-          </button>`
-        ).join('');
-
-        sel.addEventListener('change', (e) => {
-          selectChip(e.target.value);
-        });
-
-        if (loadedExamples.length > 0) {
-          selectChip(0);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            loadedExamples = data;
+            renderExamplesList(loadedExamples);
+          }
         }
       } catch (err) {
-        console.error('Failed to load examples:', err);
+        console.warn('Using built-in presets:', err.message);
       }
     }
 
