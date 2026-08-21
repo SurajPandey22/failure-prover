@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Failure Prover — Autonomous AI Debugger & Verification Matrix</title>
+  <title>PROVER-9000 // Autonomous Robotic Bug Hunter</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -11,444 +11,473 @@
       theme: {
         extend: {
           fontFamily: {
-            sans: ['"Inter"', 'system-ui', '-apple-system', 'sans-serif'],
-            mono: ['"JetBrains Mono"', '"Fira Code"', 'Menlo', 'monospace']
+            mono: ['"JetBrains Mono"', '"Share Tech Mono"', '"Fira Code"', 'monospace'],
+            sans: ['"Rajdhani"', '"Inter"', 'system-ui', 'sans-serif'],
           },
           colors: {
-            cyber: {
-              bg: '#070a12',
-              card: 'rgba(15, 23, 42, 0.75)',
-              border: 'rgba(148, 163, 184, 0.12)',
-              borderGlow: 'rgba(99, 102, 241, 0.4)',
-              primary: '#6366f1',
-              cyan: '#06b6d4',
-              emerald: '#10b981',
-              amber: '#f59e0b',
-              rose: '#f43f5e'
+            mech: {
+              bg: '#05070c',
+              panel: '#0a0e1a',
+              card: 'rgba(11, 18, 33, 0.85)',
+              border: '#1e293b',
+              glow: '#00f0ff',
+              green: '#00ff88',
+              amber: '#ffaa00',
+              red: '#ff0055',
+              violet: '#a855f7'
             }
           },
           animation: {
-            'glow-pulse': 'glowPulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-            'beam': 'beam 2s linear infinite',
-            'float': 'float 6s ease-in-out infinite'
+            'radar': 'radar 3s linear infinite',
+            'scanline': 'scanline 6s linear infinite',
+            'hud-glow': 'hudGlow 2.5s ease-in-out infinite alternate',
+            'blink': 'blink 1s step-start infinite',
+            'robot-eye': 'robotEye 4s ease-in-out infinite alternate',
           },
           keyframes: {
-            glowPulse: {
-              '0%, 100%': { opacity: '0.4', transform: 'scale(1)' },
-              '50%': { opacity: '0.8', transform: 'scale(1.05)' }
-            },
-            beam: {
-              '0%': { backgroundPosition: '0% 50%' },
-              '100%': { backgroundPosition: '200% 50%' }
-            },
-            float: {
-              '0%, 100%': { transform: 'translateY(0px)' },
-              '50%': { transform: 'translateY(-6px)' }
-            }
+            radar: { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } },
+            scanline: { '0%': { transform: 'translateY(-100%)' }, '100%': { transform: 'translateY(1000%)' } },
+            hudGlow: { '0%': { opacity: '0.6', filter: 'drop-shadow(0 0 5px #00f0ff)' }, '100%': { opacity: '1', filter: 'drop-shadow(0 0 15px #00f0ff)' } },
+            blink: { '0%, 100%': { opacity: '1' }, '50%': { opacity: '0' } },
+            robotEye: { '0%': { transform: 'translateX(-12px)' }, '50%': { transform: 'translateX(12px)' }, '100%': { transform: 'translateX(0px)' } }
           }
         }
       }
     }
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
     body {
-      background-color: #070a12;
+      background-color: #04070e;
       background-image: 
-        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.10) 0px, transparent 50%),
-        radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.5) 0px, transparent 100%),
-        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-      background-size: 100% 100%, 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+        radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.12) 0%, transparent 60%),
+        radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.08) 0%, transparent 60%),
+        linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px;
+    }
+
+    .mech-frame {
+      position: relative;
+      background: rgba(10, 16, 28, 0.88);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      clip-path: polygon(
+        0 12px, 12px 0,
+        calc(100% - 12px) 0, 100% 12px,
+        100% calc(100% - 12px), calc(100% - 12px) 100%,
+        12px 100%, 0 calc(100% - 12px)
+      );
     }
     
-    .glass-card {
-      background: rgba(13, 19, 36, 0.72);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
-    }
-    
-    .glass-card-hover {
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .glass-card-hover:hover {
-      border-color: rgba(99, 102, 241, 0.35);
-      box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
-      transform: translateY(-2px);
+    .mech-frame::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, #00f0ff, transparent);
     }
 
-    .terminal-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
-    .terminal-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-    .terminal-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-    .terminal-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-    .diff-line-add { background: rgba(16, 185, 129, 0.12); color: #34d399; }
-    .diff-line-del { background: rgba(244, 63, 94, 0.12); color: #f87171; }
-    .diff-line-hdr { background: rgba(6, 182, 212, 0.10); color: #38bdf8; }
-
-    .btn-gradient {
-      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #06b6d4 100%);
-      background-size: 200% 200%;
-      transition: all 0.3s ease;
+    .corner-bracket {
+      position: relative;
     }
-    .btn-gradient:hover {
-      background-position: 100% 100%;
-      box-shadow: 0 0 25px rgba(99, 102, 241, 0.45);
+    .corner-bracket::before {
+      content: ''; position: absolute; top: -2px; left: -2px; width: 8px; height: 8px;
+      border-top: 2px solid #00f0ff; border-left: 2px solid #00f0ff;
     }
+    .corner-bracket::after {
+      content: ''; position: absolute; bottom: -2px; right: -2px; width: 8px; height: 8px;
+      border-bottom: 2px solid #00f0ff; border-right: 2px solid #00f0ff;
+    }
+
+    .hud-scanner {
+      background: linear-gradient(180deg, rgba(0,240,255,0) 0%, rgba(0,240,255,0.15) 50%, rgba(0,240,255,0) 100%);
+    }
+
+    .hud-btn {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.2) 0%, rgba(99, 102, 241, 0.3) 100%);
+      border: 1px solid #00f0ff;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+      clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+      transition: all 0.25s ease;
+    }
+    .hud-btn:hover {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.4) 0%, rgba(0, 255, 136, 0.4) 100%);
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.6);
+      transform: scale(1.02);
+    }
+
+    .hud-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+    .hud-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.4); }
+    .hud-scroll::-webkit-scrollbar-thumb { background: #00f0ff; border-radius: 2px; }
+
+    .diff-add { color: #00ff88; background: rgba(0,255,136,0.1); }
+    .diff-del { color: #ff0055; background: rgba(255,0,85,0.1); }
+    .diff-hdr { color: #00f0ff; background: rgba(0,240,255,0.1); }
   </style>
 </head>
 
-<body class="text-slate-200 font-sans min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+<body class="text-cyan-100 font-mono min-h-screen flex flex-col selection:bg-cyan-500 selection:text-black">
 
-  <!-- Ambient Glow Orbs -->
-  <div class="fixed top-0 left-1/4 w-96 h-96 bg-indigo-600/15 rounded-full filter blur-[120px] pointer-events-none -z-10 animate-glow-pulse"></div>
-  <div class="fixed bottom-0 right-1/4 w-[30rem] h-[30rem] bg-cyan-600/10 rounded-full filter blur-[140px] pointer-events-none -z-10 animate-glow-pulse" style="animation-delay: 1.5s;"></div>
-
-  <!-- Top Navigation Header -->
-  <header class="sticky top-0 z-50 border-b border-slate-800/80 bg-cyber-bg/85 backdrop-blur-xl">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+  <!-- TOP MECH COMMAND HEADER -->
+  <header class="border-b border-cyan-500/30 bg-mech-panel/90 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
       
-      <!-- Brand Logo -->
-      <div class="flex items-center gap-3.5">
-        <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-600 to-cyan-500 p-[1px] shadow-lg shadow-indigo-500/25">
-          <div class="w-full h-full bg-slate-950 rounded-[11px] flex items-center justify-center">
-            <svg class="w-5 h-5 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            </svg>
+      <!-- Robotic Sentinel Brand Profile -->
+      <div class="flex items-center gap-4">
+        <!-- Robot Avatar Visor Icon -->
+        <div class="relative w-12 h-12 rounded-xl bg-slate-900 border-2 border-cyan-400 p-1 flex items-center justify-center shadow-[0_0_20px_rgba(0,240,255,0.4)]">
+          <!-- Animated Eye Scanner Visor -->
+          <div class="w-full h-full bg-slate-950 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
+            <div class="w-8 h-2.5 bg-slate-900 border border-cyan-500/60 rounded-full flex items-center px-1">
+              <div id="robotEyePupil" class="w-2.5 h-1.5 bg-cyan-400 rounded-full shadow-[0_0_8px_#00f0ff] animate-robot-eye"></div>
+            </div>
+            <!-- Sub-circuits -->
+            <div class="flex gap-1 mt-1.5">
+              <span class="w-1 h-1 rounded-full bg-emerald-400 animate-ping"></span>
+              <span class="w-1 h-1 rounded-full bg-cyan-400"></span>
+              <span class="w-1 h-1 rounded-full bg-amber-400"></span>
+            </div>
           </div>
         </div>
+
         <div>
-          <div class="flex items-center gap-2">
-            <span class="font-extrabold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
-              FAILURE PROVER
+          <div class="flex items-center gap-2.5">
+            <span class="font-sans font-extrabold text-2xl tracking-wider text-white uppercase" style="letter-spacing: 0.15em;">
+              PROVER<span class="text-cyan-400">-9000</span>
             </span>
-            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold tracking-wider">
-              v2.0 PRO
+            <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-950/90 border border-cyan-400/60 text-cyan-300 font-bold tracking-widest uppercase">
+              MECH-UNIT // v2.5
             </span>
           </div>
-          <p class="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block"></span>
-            Autonomous Verification-Driven AI Debugger
-          </p>
+          <div class="text-[11px] text-slate-400 flex items-center gap-2 tracking-wide">
+            <span class="text-emerald-400 font-bold">● ONLINE</span>
+            <span class="text-slate-600">|</span>
+            <span>AUTONOMOUS SENTINEL DEBUGGING DROID</span>
+          </div>
         </div>
       </div>
 
-      <!-- Controls & Mode Toggles -->
+      <!-- Tactical Status Readout & Mode Switchers -->
       <div class="flex items-center gap-4">
         
-        <!-- Live Demo / Fast Bypass Toggle -->
-        <label class="relative flex items-center gap-2 cursor-pointer text-xs font-mono bg-slate-900/90 border border-slate-700/60 px-3 py-1.5 rounded-lg hover:border-slate-600 transition">
+        <!-- Sound FX Toggle -->
+        <button onclick="toggleAudio()" id="audioBtn" class="p-2 rounded bg-slate-900 border border-cyan-500/40 text-cyan-400 hover:text-white transition text-xs flex items-center gap-1.5" title="Toggle Robotic Audio FX">
+          <span id="audioIcon">🔊</span>
+          <span class="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">AUDIO FX</span>
+        </button>
+
+        <!-- Fast Demo Simulation Override -->
+        <label class="relative flex items-center gap-2 cursor-pointer text-xs bg-slate-900/90 border border-cyan-500/40 px-3 py-2 rounded hover:border-cyan-400 transition">
           <input type="checkbox" id="demoModeToggle" class="sr-only peer">
-          <div class="w-7 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[6px] after:left-[14px] after:bg-white after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-cyan-500"></div>
-          <span class="text-slate-300 peer-checked:text-cyan-300 font-medium select-none">Fast Demo Simulation</span>
+          <div class="w-7 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[8px] after:left-[14px] after:bg-white after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-cyan-400"></div>
+          <span class="text-slate-300 peer-checked:text-cyan-300 font-bold text-[11px] uppercase tracking-wider select-none">DEMO SANDBOX MODE</span>
         </label>
 
-        <!-- Status Indicator Pill -->
-        <div id="topStatusPill" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-xs font-mono text-slate-400">
-          <span id="topStatusDot" class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
-          <span id="topStatusText">SYSTEM IDLE</span>
-        </div>
-
-        <!-- GitHub Repo Link -->
+        <!-- GitHub Tactical Link -->
         <a href="https://github.com/SurajPandey22/failure-prover" target="_blank" rel="noopener noreferrer" 
-           class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition"
-           title="View on GitHub">
+           class="p-2.5 rounded bg-slate-900 border border-cyan-500/40 text-cyan-400 hover:text-white hover:border-cyan-300 transition"
+           title="Source Repo">
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
         </a>
       </div>
     </div>
   </header>
 
-  <!-- Main Workstation Layout -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+  <!-- ROBOT TELEMETRY & DIAGNOSTIC HUD -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full space-y-6">
 
-    <!-- Live Telemetry HUD -->
-    <section class="grid grid-cols-2 md:grid-cols-4 gap-3.5" aria-label="Investigation metrics">
-      <div class="glass-card p-3.5 rounded-xl flex items-center gap-3.5 glass-card-hover">
-        <div class="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        </div>
+    <!-- 4-Gauge Robot Telemetry Status Bar -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      
+      <div class="mech-frame p-3.5 flex items-center justify-between">
         <div>
-          <div class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">LATENCY</div>
-          <div id="hudLatency" class="text-base font-bold font-mono text-slate-100">0.00s</div>
+          <div class="text-[10px] text-cyan-400/70 tracking-widest uppercase">DIAGNOSTIC LATENCY</div>
+          <div id="hudLatency" class="text-lg font-bold text-white tracking-wider">0.00s</div>
         </div>
+        <div class="text-cyan-400 text-xs font-bold px-2 py-1 bg-cyan-950/80 border border-cyan-500/40 rounded">T-CLOCK</div>
       </div>
 
-      <div class="glass-card p-3.5 rounded-xl flex items-center gap-3.5 glass-card-hover">
-        <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-        </div>
+      <div class="mech-frame p-3.5 flex items-center justify-between">
         <div>
-          <div class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">HYPOTHESES</div>
-          <div id="hudHypotheses" class="text-base font-bold font-mono text-slate-100">0 Formulated</div>
+          <div class="text-[10px] text-purple-400/70 tracking-widest uppercase">HYPOTHESES FORMED</div>
+          <div id="hudHypotheses" class="text-lg font-bold text-purple-300 tracking-wider">0 IN MATRIX</div>
         </div>
+        <div class="text-purple-400 text-xs font-bold px-2 py-1 bg-purple-950/80 border border-purple-500/40 rounded">SYNAPSE</div>
       </div>
 
-      <div class="glass-card p-3.5 rounded-xl flex items-center gap-3.5 glass-card-hover">
-        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-        </div>
+      <div class="mech-frame p-3.5 flex items-center justify-between">
         <div>
-          <div class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">VERIFICATION</div>
-          <div id="hudConfidence" class="text-base font-bold font-mono text-slate-100">Awaiting</div>
+          <div class="text-[10px] text-emerald-400/70 tracking-widest uppercase">VERIFIER STATUS</div>
+          <div id="hudConfidence" class="text-lg font-bold text-emerald-300 tracking-wider">ARMED</div>
         </div>
+        <div class="text-emerald-400 text-xs font-bold px-2 py-1 bg-emerald-950/80 border border-emerald-500/40 rounded">100% PROOF</div>
       </div>
 
-      <div class="glass-card p-3.5 rounded-xl flex items-center gap-3.5 glass-card-hover">
-        <div class="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-        </div>
+      <div class="mech-frame p-3.5 flex items-center justify-between">
         <div>
-          <div class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">EVIDENCE ITEMS</div>
-          <div id="hudEvidence" class="text-base font-bold font-mono text-slate-100">0 In Ledger</div>
+          <div class="text-[10px] text-amber-400/70 tracking-widest uppercase">EVIDENCE LEDGER</div>
+          <div id="hudEvidence" class="text-lg font-bold text-amber-300 tracking-wider">0 ARTIFACTS</div>
         </div>
+        <div class="text-amber-400 text-xs font-bold px-2 py-1 bg-amber-950/80 border border-amber-500/40 rounded">GROUND TRUTH</div>
       </div>
-    </section>
+    </div>
 
-    <!-- Two-Column Workbench Core -->
+    <!-- MAIN ROBOT WORKSTATION GRID -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-      <!-- LEFT COLUMN: Target Configuration & Pytest Input (5 cols) -->
+      <!-- LEFT COLUMN: ROBOT COMMAND DECK (5 cols) -->
       <section class="lg:col-span-5 space-y-4">
         
-        <!-- Target Selector Card -->
-        <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
-          <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
-            <h2 class="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-              TARGET ENVIRONMENT
+        <!-- Target Sector Selection Box -->
+        <div class="mech-frame p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-cyan-500/30 pb-3">
+            <h2 class="text-xs font-bold text-cyan-300 uppercase tracking-widest flex items-center gap-2">
+              <span class="w-2 h-2 bg-cyan-400 animate-pulse inline-block"></span>
+              SECTOR TARGET SCANNER
             </h2>
-            <span class="text-[10px] font-mono text-slate-500">20 REPOS LOADED</span>
+            <span class="text-[10px] text-slate-500">[ 20 BENCHMARKS ARMED ]</span>
           </div>
 
-          <!-- Benchmark Selector Dropdown -->
+          <!-- Suite Selector -->
           <div>
-            <label for="exampleSelector" class="block text-xs font-mono text-slate-400 mb-1.5">Select Benchmark Suite</label>
-            <select id="exampleSelector" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs font-mono text-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition cursor-pointer">
-              <option value="">Loading test cases...</option>
+            <label class="block text-[11px] text-slate-400 uppercase tracking-wider mb-1.5">Target Defect Environment</label>
+            <select id="exampleSelector" class="w-full bg-slate-950 border border-cyan-500/40 rounded px-3 py-2 text-xs text-cyan-200 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 outline-none cursor-pointer">
+              <option value="">SCANNING DIRECTORIES...</option>
             </select>
           </div>
 
-          <!-- Quick Chips Selection -->
+          <!-- Quick Tactical Sector Chips -->
           <div>
-            <div class="text-[10px] font-mono text-slate-500 uppercase tracking-wider mb-2">QUICK BENCHMARKS</div>
+            <div class="text-[10px] text-slate-400 uppercase tracking-widest mb-2">QUICK SELECTION CHIPS</div>
             <div id="quickChips" class="flex flex-wrap gap-1.5">
-              <!-- Dynamically populated -->
+              <!-- Dynamically rendered -->
             </div>
           </div>
 
-          <!-- Repository Path Field -->
+          <!-- Repo Path -->
           <div>
-            <label for="repoPath" class="block text-xs font-mono text-slate-400 mb-1.5">Local Repo Directory</label>
+            <label class="block text-[11px] text-slate-400 uppercase tracking-wider mb-1.5">Repository Coordinates</label>
             <input type="text" id="repoPath" value="./examples/parser_bug" 
-              class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-mono text-slate-300 focus:border-cyan-500 outline-none transition">
+              class="w-full bg-slate-950 border border-cyan-500/30 rounded px-3 py-2 text-xs text-slate-300 focus:border-cyan-400 outline-none">
           </div>
         </div>
 
-        <!-- Failure Log Terminal Input -->
-        <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-3">
-          <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
-            <h2 class="text-xs font-mono font-bold text-rose-400 uppercase tracking-widest flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-              PYTEST FAILURE LOG
+        <!-- Failure Log Telemetry Input -->
+        <div class="mech-frame p-5 space-y-3">
+          <div class="flex items-center justify-between border-b border-cyan-500/30 pb-3">
+            <h2 class="text-xs font-bold text-rose-400 uppercase tracking-widest flex items-center gap-2">
+              <span class="w-2 h-2 bg-rose-500 inline-block"></span>
+              FAILURE TRACEBACK TELEMETRY
             </h2>
-            <button onclick="clearLog()" class="text-[10px] font-mono text-slate-500 hover:text-slate-300 transition">CLEAR</button>
+            <button onclick="clearLog()" class="text-[10px] text-slate-400 hover:text-cyan-300 uppercase font-bold transition">[ CLEAR ]</button>
           </div>
 
           <textarea id="logInput" rows="12" 
-            class="w-full bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 font-mono text-xs text-rose-300/90 leading-relaxed focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none resize-none terminal-scrollbar selection:bg-rose-900"
-            placeholder="Paste pytest failure traceback here..."></textarea>
+            class="w-full bg-slate-950 border border-rose-500/30 rounded p-3 font-mono text-xs text-rose-300 leading-relaxed focus:border-rose-400 outline-none resize-none hud-scroll"
+            placeholder="[AWAITING PYTEST FAILURE TRACEBACK...]"></textarea>
         </div>
 
-        <!-- Main Action Trigger -->
+        <!-- Giant Mechanical Engagement Button -->
         <button onclick="investigate()" id="runBtn" 
-          class="w-full btn-gradient text-white font-mono font-bold py-4 px-6 rounded-2xl shadow-xl flex items-center justify-center gap-3 transition-all duration-300 transform active:scale-[0.98]">
-          <svg id="btnIcon" class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-          <svg id="btnSpinner" class="w-5 h-5 animate-spin hidden text-white" fill="none" viewBox="0 0 24 24">
+          class="w-full hud-btn text-cyan-200 font-sans font-extrabold text-base tracking-widest py-4 px-6 uppercase shadow-2xl flex items-center justify-center gap-3">
+          <span id="btnIcon" class="text-lg">🤖</span>
+          <svg id="btnSpinner" class="w-5 h-5 animate-spin hidden text-cyan-300" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <span id="btnText" class="tracking-wider uppercase text-sm">LAUNCH AUTONOMOUS PROVER</span>
+          <span id="btnText">ENGAGE AUTONOMOUS PROVER DROID</span>
         </button>
       </section>
 
-      <!-- RIGHT COLUMN: Interactive Prover Cockpit & Multi-Tabs (7 cols) -->
+      <!-- RIGHT COLUMN: ROBOTIC DIAGNOSTIC CORE & PROOF MATRIX (7 cols) -->
       <section class="lg:col-span-7 space-y-4 flex flex-col">
 
-        <!-- Live Stepper Pipeline HUD -->
-        <div class="glass-card rounded-2xl p-4 border border-slate-800">
-          <div class="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-3 text-center sm:text-left">
-            EVIDENCE-BASED REASONING PIPELINE
+        <!-- 5-STAGE ROBOT REASONING PIPELINE HUD -->
+        <div class="mech-frame p-4">
+          <div class="flex items-center justify-between mb-3 border-b border-cyan-500/20 pb-2">
+            <span class="text-[10px] text-cyan-400 font-bold uppercase tracking-widest">
+              AUTONOMOUS EXECUTION PIPELINE
+            </span>
+            <span class="text-[10px] text-emerald-400 font-mono" id="pipelineStateText">READY</span>
           </div>
-          <div class="grid grid-cols-5 gap-2 text-center">
-            <div id="step-1" class="border border-slate-800 rounded-lg p-2 transition-all duration-300">
-              <div class="text-[10px] font-mono font-bold text-slate-400">01. INGEST</div>
-              <div class="text-[9px] text-slate-500 hidden sm:block">Parse Log</div>
+
+          <div class="grid grid-cols-5 gap-2 text-center text-xs">
+            <div id="step-1" class="border border-slate-800 rounded p-2 transition-all">
+              <div class="font-bold text-[10px] text-slate-400">01. INGEST</div>
+              <div class="text-[9px] text-slate-500">Log Ingestion</div>
             </div>
-            <div id="step-2" class="border border-slate-800 rounded-lg p-2 transition-all duration-300">
-              <div class="text-[10px] font-mono font-bold text-slate-400">02. HYPOTHESIZE</div>
-              <div class="text-[9px] text-slate-500 hidden sm:block">Formulate</div>
+            <div id="step-2" class="border border-slate-800 rounded p-2 transition-all">
+              <div class="font-bold text-[10px] text-slate-400">02. HYPOTHESIS</div>
+              <div class="text-[9px] text-slate-500">Neural Genesis</div>
             </div>
-            <div id="step-3" class="border border-slate-800 rounded-lg p-2 transition-all duration-300">
-              <div class="text-[10px] font-mono font-bold text-slate-400">03. PROBE</div>
-              <div class="text-[9px] text-slate-500 hidden sm:block">Repo Tools</div>
+            <div id="step-3" class="border border-slate-800 rounded p-2 transition-all">
+              <div class="font-bold text-[10px] text-slate-400">03. PROBE</div>
+              <div class="text-[9px] text-slate-500">Sandbox Test</div>
             </div>
-            <div id="step-4" class="border border-slate-800 rounded-lg p-2 transition-all duration-300">
-              <div class="text-[10px] font-mono font-bold text-slate-400">04. VERIFY</div>
-              <div class="text-[9px] text-slate-500 hidden sm:block">Ledger Gate</div>
+            <div id="step-4" class="border border-slate-800 rounded p-2 transition-all">
+              <div class="font-bold text-[10px] text-slate-400">04. VERIFY</div>
+              <div class="text-[9px] text-slate-500">Proof Ledger</div>
             </div>
-            <div id="step-5" class="border border-slate-800 rounded-lg p-2 transition-all duration-300">
-              <div class="text-[10px] font-mono font-bold text-slate-400">05. PATCH</div>
-              <div class="text-[9px] text-slate-500 hidden sm:block">Git Diff</div>
+            <div id="step-5" class="border border-slate-800 rounded p-2 transition-all">
+              <div class="font-bold text-[10px] text-slate-400">05. PATCH</div>
+              <div class="text-[9px] text-slate-500">Auto Synthesis</div>
             </div>
           </div>
         </div>
 
-        <!-- Cockpit Display Tabs Navigation -->
-        <div class="flex items-center justify-between border-b border-slate-800 pb-1">
+        <!-- Screen Deck Tabs -->
+        <div class="flex items-center justify-between border-b border-cyan-500/30 pb-1">
           <div class="flex items-center gap-2">
-            <button onclick="switchTab('terminal')" id="tabBtn-terminal" class="px-4 py-2 text-xs font-mono font-semibold rounded-t-xl border-b-2 border-cyan-400 text-cyan-300 bg-slate-900/60 transition">
-              📟 Live Neural Stream
+            <button onclick="switchTab('terminal')" id="tabBtn-terminal" class="px-4 py-2 text-xs font-bold rounded-t border-b-2 border-cyan-400 text-cyan-300 bg-slate-900/80 transition">
+              📟 STREAM LOGS
             </button>
-            <button onclick="switchTab('hypotheses')" id="tabBtn-hypotheses" class="px-4 py-2 text-xs font-mono font-semibold rounded-t-xl border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">
-              ⚖️ Evidence Ledger
+            <button onclick="switchTab('hypotheses')" id="tabBtn-hypotheses" class="px-4 py-2 text-xs font-bold rounded-t border-b-2 border-transparent text-slate-400 hover:text-cyan-300 transition">
+              ⚖️ EVIDENCE LEDGER
             </button>
-            <button onclick="switchTab('patch')" id="tabBtn-patch" class="px-4 py-2 text-xs font-mono font-semibold rounded-t-xl border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">
-              🛠️ Patch Studio
-            </button>
-          </div>
-          <div class="flex items-center gap-2">
-            <button onclick="downloadReportMarkdown()" id="exportReportBtn" class="hidden px-2.5 py-1 text-[11px] font-mono rounded-lg bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-700/60 text-indigo-300 transition flex items-center gap-1.5">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              Export Report .md
+            <button onclick="switchTab('patch')" id="tabBtn-patch" class="px-4 py-2 text-xs font-bold rounded-t border-b-2 border-transparent text-slate-400 hover:text-cyan-300 transition">
+              🛠️ PATCH STUDIO
             </button>
           </div>
-        </div>
-
-        <!-- TAB 1: Live Terminal Output -->
-        <div id="tabContent-terminal" class="glass-card rounded-2xl p-4 border border-slate-800 flex-1 flex flex-col min-h-[380px]">
-          <div class="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-3">
-            <div class="flex items-center gap-2">
-              <div class="flex gap-1.5">
-                <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80"></span>
-                <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
-              </div>
-              <span class="text-xs font-mono text-slate-400 font-semibold ml-2">agent_runtime_stdout.log</span>
-            </div>
-            <button onclick="copyTerminal()" class="text-[10px] font-mono text-slate-400 hover:text-cyan-400 transition">COPY LOGS</button>
-          </div>
-          <div id="terminalOutput" class="flex-1 bg-slate-950/95 rounded-xl p-4 font-mono text-xs text-slate-300 leading-relaxed overflow-y-auto terminal-scrollbar space-y-1.5 max-h-[420px]">
-            <div class="text-slate-600 select-none">› Agent ready. Click "LAUNCH AUTONOMOUS PROVER" to begin stateful investigation...</div>
-          </div>
-        </div>
-
-        <!-- TAB 2: Evidence Ledger & Hypotheses Matrix -->
-        <div id="tabContent-hypotheses" class="hidden glass-card rounded-2xl p-5 border border-slate-800 space-y-4 flex-1">
           
-          <!-- Diagnosis Hero Banner -->
-          <div id="diagnosisBanner" class="p-4 rounded-xl bg-gradient-to-r from-indigo-950/60 to-slate-900 border border-indigo-500/30 space-y-2">
+          <button onclick="downloadReportMarkdown()" id="exportReportBtn" class="hidden px-3 py-1 text-[11px] rounded bg-indigo-950 border border-indigo-500 text-indigo-300 hover:bg-indigo-900 transition flex items-center gap-1.5">
+            📥 EXPORT REPORT .MD
+          </button>
+        </div>
+
+        <!-- TAB 1: ROBOT TERMINAL OUTPUT -->
+        <div id="tabContent-terminal" class="mech-frame p-4 flex-1 flex flex-col min-h-[380px]">
+          <div class="flex items-center justify-between pb-3 border-b border-cyan-500/20 mb-3 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span class="font-bold text-cyan-400">CORE_RUNTIME_STDOUT.STREAM</span>
+            </div>
+            <button onclick="copyTerminal()" class="text-[10px] text-slate-400 hover:text-cyan-300 uppercase">[ COPY STREAM ]</button>
+          </div>
+          <div id="terminalOutput" class="flex-1 bg-black/90 rounded p-4 text-xs text-slate-300 leading-relaxed overflow-y-auto hud-scroll space-y-1.5 max-h-[420px] font-mono">
+            <div class="text-slate-600">[SENTINEL CORE IDLE: AWAITING USER COMMAND TRIGGER...]</div>
+          </div>
+        </div>
+
+        <!-- TAB 2: EVIDENCE LEDGER & VERIFICATION MATRIX -->
+        <div id="tabContent-hypotheses" class="hidden mech-frame p-5 space-y-4 flex-1">
+          
+          <!-- Robot Verdict Banner -->
+          <div id="diagnosisBanner" class="p-4 rounded bg-gradient-to-r from-slate-900 to-indigo-950 border border-cyan-500/40 space-y-2">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-mono font-bold text-indigo-400 uppercase tracking-widest">FINAL VERDICT</span>
-              <span id="diagConfidence" class="text-xs font-mono px-2.5 py-1 rounded-full font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">CONFIDENCE: HIGH</span>
+              <span class="text-xs font-bold text-cyan-300 uppercase tracking-widest">FINAL DIAGNOSTIC VERDICT</span>
+              <span id="diagConfidence" class="text-xs font-bold px-2.5 py-1 rounded bg-emerald-950 border border-emerald-500 text-emerald-400">CONFIDENCE: HIGH</span>
             </div>
-            <div id="diagRootCause" class="text-sm font-semibold text-slate-100 leading-relaxed">
-              Run investigation to establish root cause.
-            </div>
-          </div>
-
-          <!-- Hypotheses Cards List -->
-          <div>
-            <h3 class="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-2.5">EVALUATED HYPOTHESES</h3>
-            <div id="hypothesesList" class="space-y-2 max-h-60 overflow-y-auto terminal-scrollbar">
-              <div class="p-3 rounded-xl border border-slate-800 text-xs text-slate-500 font-mono text-center">No hypotheses formulated yet.</div>
+            <div id="diagRootCause" class="text-sm text-slate-100 font-sans font-bold leading-relaxed">
+              [Run investigation to establish verified root cause]
             </div>
           </div>
 
-          <!-- Evidence Ledger Cards List -->
+          <!-- Hypotheses Cards -->
           <div>
-            <h3 class="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-2.5">SANDBOX REPOSITORY EVIDENCE</h3>
-            <div id="evidenceList" class="space-y-2 max-h-60 overflow-y-auto terminal-scrollbar">
-              <div class="p-3 rounded-xl border border-slate-800 text-xs text-slate-500 font-mono text-center">No repository evidence collected yet.</div>
+            <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-2">EVALUATED HYPOTHESES</h3>
+            <div id="hypothesesList" class="space-y-2 max-h-56 overflow-y-auto hud-scroll">
+              <div class="p-3 rounded border border-slate-800 text-xs text-slate-500 text-center">[No hypotheses formulated]</div>
+            </div>
+          </div>
+
+          <!-- Sandbox Evidence Artifacts -->
+          <div>
+            <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-2">GROUND TRUTH EVIDENCE ARTIFACTS</h3>
+            <div id="evidenceList" class="space-y-2 max-h-56 overflow-y-auto hud-scroll">
+              <div class="p-3 rounded border border-slate-800 text-xs text-slate-500 text-center">[No repository evidence collected]</div>
             </div>
           </div>
         </div>
 
-        <!-- TAB 3: Patch Studio & Auto-Apply -->
-        <div id="tabContent-patch" class="hidden glass-card rounded-2xl p-5 border border-slate-800 space-y-4 flex-1">
+        <!-- TAB 3: PATCH STUDIO & ATOMIC APPLY -->
+        <div id="tabContent-patch" class="hidden mech-frame p-5 space-y-4 flex-1">
           
           <div class="flex items-center justify-between">
             <div>
-              <h3 class="text-sm font-mono font-bold text-emerald-400">SYNTHESIZED GIT DIFF</h3>
-              <p class="text-xs text-slate-400">Verified unified patch ready for atomic repository application.</p>
+              <h3 class="text-sm font-bold text-emerald-400">SYNTHESIZED REPAIR PATCH</h3>
+              <p class="text-xs text-slate-400">Verified unified git diff ready for atomic application.</p>
             </div>
             <div class="flex items-center gap-2">
-              <button onclick="copyPatch()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 transition">
+              <button onclick="copyPatch()" class="px-3 py-1.5 rounded bg-slate-900 border border-slate-700 hover:border-cyan-400 text-xs text-slate-200 transition">
                 Copy Patch
               </button>
-              <button onclick="applyPatchLive()" id="applyBtn" class="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-mono font-bold text-white shadow-lg shadow-emerald-600/30 transition flex items-center gap-1.5">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                Apply to Repo Live
+              <button onclick="applyPatchLive()" id="applyBtn" class="px-4 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-[0_0_15px_rgba(0,255,136,0.4)] transition flex items-center gap-1.5">
+                Apply Fix Live
               </button>
             </div>
           </div>
 
-          <!-- Post-Patch Verification Status -->
-          <div id="postPatchStatus" class="hidden p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 font-mono text-xs flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <!-- Post-Patch Test Status -->
+          <div id="postPatchStatus" class="hidden p-3 rounded bg-emerald-950/60 border border-emerald-500 text-emerald-300 text-xs flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
             <span id="postPatchStatusText">Verification pending...</span>
           </div>
 
-          <div class="bg-slate-950 rounded-xl p-4 font-mono text-xs overflow-x-auto terminal-scrollbar border border-slate-800/80 max-h-[360px]">
-            <pre id="patchDiffOutput" class="text-slate-300 leading-relaxed select-text">No patch generated yet.</pre>
+          <div class="bg-black/90 rounded p-4 text-xs overflow-x-auto hud-scroll border border-cyan-500/20 max-h-[360px]">
+            <pre id="patchDiffOutput" class="text-slate-300 leading-relaxed">[No patch generated yet]</pre>
           </div>
         </div>
 
-        <!-- Error Alert Container -->
-        <div id="errorAlert" class="hidden p-4 rounded-xl bg-rose-950/80 border border-rose-600/50 text-rose-300 text-xs font-mono flex items-start gap-3">
-          <svg class="w-5 h-5 text-rose-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          <div id="errorAlertText">Error message here.</div>
+        <!-- Error Alert Deck -->
+        <div id="errorAlert" class="hidden p-4 rounded bg-rose-950/90 border border-rose-500 text-rose-300 text-xs flex items-start gap-3">
+          <span class="text-rose-400 text-base">⚠️</span>
+          <div id="errorAlertText">System diagnostic warning.</div>
         </div>
 
       </section>
     </div>
   </main>
 
-  <!-- Live Toast Notification -->
-  <div id="toastNotification" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 glass-card px-4 py-3 rounded-xl border border-emerald-500/40 text-emerald-300 text-xs font-mono flex items-center gap-2.5 shadow-2xl">
-    <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-    <span id="toastMessage">Action successful!</span>
+  <!-- ROBOT AUDIO SYNTHESIZER & NOTIFICATION TOAST -->
+  <div id="toastNotification" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 mech-frame px-4 py-3 text-xs flex items-center gap-2.5 shadow-2xl">
+    <span class="text-emerald-400">🤖</span>
+    <span id="toastMessage" class="text-slate-200">Robot subroutine complete!</span>
   </div>
 
-  <!-- Footer -->
-  <footer class="border-t border-slate-800/80 py-4 mt-8 bg-slate-950/40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs font-mono text-slate-500 gap-2">
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-        <span>Built with Node.js · TypeScript · Gemini API · Zero-Bloat Framework</span>
-      </div>
-      <div>
-        <span>Rule: "LLM claims are NOT evidence. Evidence must come from ground-truth repo state."</span>
-      </div>
+  <!-- FOOTER RULE BAR -->
+  <footer class="border-t border-cyan-500/20 py-4 mt-8 bg-black/60">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+      <div>PROVER-9000 // CORE INVARIANT: LLM CLAIMS MUST BE OBJECTIVELY PROVEN BY REPOSITORY TRUTH</div>
+      <div>BUILT FROM SCRATCH WITH NODE.JS · TYPESCRIPT · GEMINI API</div>
     </div>
   </footer>
 
-  <!-- Application Frontend Logic -->
+  <!-- SCRIPT ENGINE -->
   <script>
     let loadedExamples = [];
     let currentData = null;
     let timerInterval = null;
     let startTime = 0;
+    let audioEnabled = true;
 
-    // Boot Loader
+    // Web Audio Synthesizer for Robot Beeps
+    const audioCtx = (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) ? new (window.AudioContext || window.webkitAudioContext)() : null;
+
+    function playRobotBeep(freq = 600, type = 'sine', duration = 0.08) {
+      if (!audioEnabled || !audioCtx) return;
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      document.getElementById('audioIcon').textContent = audioEnabled ? '🔊' : '🔇';
+      showToast(audioEnabled ? 'Robot Audio FX Enabled' : 'Robot Audio FX Muted');
+      if (audioEnabled) playRobotBeep(880, 'triangle', 0.1);
+    }
+
+    // Initialize System
     window.addEventListener('DOMContentLoaded', () => {
       loadExamples();
     });
@@ -460,14 +489,14 @@
         
         const sel = document.getElementById('exampleSelector');
         sel.innerHTML = loadedExamples.map((ex, i) =>
-          `<option value="${i}">${ex.name.replace(/_/g, ' ').toUpperCase()} (${ex.path})</option>`
+          `<option value="${i}">[SECTOR ${String(i+1).padStart(2,'0')}] ${ex.name.replace(/_/g, ' ').toUpperCase()}</option>`
         ).join('');
 
         // Populate Quick Chips
         const chipsContainer = document.getElementById('quickChips');
         const popularChips = loadedExamples.slice(0, 5);
         chipsContainer.innerHTML = popularChips.map((ex, i) =>
-          `<button type="button" onclick="selectChip(${i})" class="px-2.5 py-1 rounded-md text-[11px] font-mono bg-slate-900/90 border border-slate-700 text-slate-300 hover:border-cyan-400 hover:text-cyan-300 transition">
+          `<button type="button" onclick="selectChip(${i})" class="px-2 py-1 rounded text-[10px] bg-slate-900 border border-cyan-500/40 text-cyan-300 hover:border-cyan-300 hover:bg-cyan-950 transition uppercase">
             ${ex.name}
           </button>`
         ).join('');
@@ -485,6 +514,7 @@
     }
 
     function selectChip(index) {
+      playRobotBeep(700, 'square', 0.04);
       const ex = loadedExamples[index];
       if (ex) {
         document.getElementById('exampleSelector').value = index;
@@ -494,44 +524,45 @@
     }
 
     function clearLog() {
+      playRobotBeep(400, 'sawtooth', 0.05);
       document.getElementById('logInput').value = '';
     }
 
-    // Tab Switching System
     function switchTab(tabName) {
+      playRobotBeep(650, 'sine', 0.05);
       ['terminal', 'hypotheses', 'patch'].forEach(t => {
         document.getElementById(`tabContent-${t}`).classList.add('hidden');
         document.getElementById(`tabBtn-${t}`).className = 
-          'px-4 py-2 text-xs font-mono font-semibold rounded-t-xl border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition';
+          'px-4 py-2 text-xs font-bold rounded-t border-b-2 border-transparent text-slate-400 hover:text-cyan-300 transition';
       });
 
       document.getElementById(`tabContent-${tabName}`).classList.remove('hidden');
       document.getElementById(`tabBtn-${tabName}`).className = 
-        'px-4 py-2 text-xs font-mono font-semibold rounded-t-xl border-b-2 border-cyan-400 text-cyan-300 bg-slate-900/60 transition';
+        'px-4 py-2 text-xs font-bold rounded-t border-b-2 border-cyan-400 text-cyan-300 bg-slate-900/80 transition';
     }
 
-    // Step Pipeline Active Update
     function updateStep(stepNumber) {
       for (let i = 1; i <= 5; i++) {
         const el = document.getElementById(`step-${i}`);
         if (i < stepNumber) {
-          el.className = 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 rounded-lg p-2 transition-all';
+          el.className = 'border border-emerald-400 bg-emerald-950/40 text-emerald-300 rounded p-2 transition-all';
         } else if (i === stepNumber) {
-          el.className = 'border border-cyan-400 bg-cyan-500/15 text-cyan-300 rounded-lg p-2 transition-all shadow-[0_0_12px_rgba(6,182,212,0.3)] animate-pulse';
+          el.className = 'border border-cyan-400 bg-cyan-950/80 text-cyan-200 rounded p-2 transition-all shadow-[0_0_15px_rgba(0,240,255,0.5)] animate-pulse';
         } else {
-          el.className = 'border border-slate-800 rounded-lg p-2 transition-all text-slate-500';
+          el.className = 'border border-slate-800 rounded p-2 text-slate-500 transition-all';
         }
       }
     }
 
-    // Main Autonomous Investigation Loop
     async function investigate() {
+      playRobotBeep(800, 'sawtooth', 0.1);
+      setTimeout(() => playRobotBeep(1200, 'sine', 0.15), 120);
+
       const btn = document.getElementById('runBtn');
       const errAlert = document.getElementById('errorAlert');
       const term = document.getElementById('terminalOutput');
       const isDemo = document.getElementById('demoModeToggle').checked;
 
-      // Reset state
       errAlert.classList.add('hidden');
       term.innerHTML = '';
       switchTab('terminal');
@@ -539,13 +570,13 @@
 
       setLoading(true);
       startTimer();
-      setTopStatus('INVESTIGATING...', 'bg-cyan-400 animate-ping');
+      document.getElementById('pipelineStateText').textContent = 'ENGAGED';
 
-      appendTerminal('⚡ Initializing Failure Prover Autonomous Engine...', 'text-cyan-400 font-bold');
+      appendTerminal('🤖 [PROVER-9000] SUBROUTINES INITIALIZED. ENGAGING AUTONOMOUS REASONING CORE...', 'text-cyan-400 font-bold');
       if (isDemo) {
-        appendTerminal('🧪 Mode: Fast Deterministic Sandbox (Zero Quota Bypass)', 'text-purple-400');
+        appendTerminal('🧪 [MODE] DEMO SIMULATION PROTOCOL ACTIVE (ZERO QUOTA OVERRIDE)', 'text-purple-400');
       } else {
-        appendTerminal('🤖 Mode: Live Gemini 3.6 Flash Multi-Step Prover', 'text-indigo-400');
+        appendTerminal('🛰️ [MODE] LIVE GEMINI 3.6 FLASH NEURAL MATRIX CONNECTED', 'text-emerald-400');
       }
 
       const log = document.getElementById('logInput').value;
@@ -579,16 +610,15 @@
                   currentData = data;
                   renderFullResults(data);
                   updateStep(5);
-                  setTopStatus('DIAGNOSIS COMPLETE', 'bg-emerald-400');
+                  document.getElementById('pipelineStateText').textContent = 'COMPLETED ✓';
                   document.getElementById('exportReportBtn').classList.remove('hidden');
-                  showToast('Autonomous investigation successfully completed!');
+                  playRobotBeep(1000, 'sine', 0.2);
+                  showToast('🤖 Robot Diagnosis Complete: Defect Identified & Patched!');
                 } else if (data.type === 'error') {
                   throw new Error(data.message);
                 }
               } catch (parseErr) {
-                if (parseErr.message && !parseErr.message.includes('JSON')) {
-                  throw parseErr;
-                }
+                if (parseErr.message && !parseErr.message.includes('JSON')) throw parseErr;
               }
             }
           }
@@ -596,8 +626,8 @@
       } catch (err) {
         errAlert.classList.remove('hidden');
         document.getElementById('errorAlertText').innerText = err.message;
-        appendTerminal(`❌ Error: ${err.message}`, 'text-rose-400 font-bold');
-        setTopStatus('ERROR', 'bg-rose-500');
+        appendTerminal(`❌ SYSTEM FAULT: ${err.message}`, 'text-rose-400 font-bold');
+        playRobotBeep(250, 'sawtooth', 0.3);
       } finally {
         setLoading(false);
         stopTimer();
@@ -607,88 +637,87 @@
     function handleStreamProgress(msg) {
       let colorClass = 'text-slate-300';
       if (msg.includes('Hypothesis created:')) {
-        colorClass = 'text-purple-300 font-semibold';
+        colorClass = 'text-purple-300 font-bold';
         updateStep(2);
+        playRobotBeep(750, 'sine', 0.03);
       } else if (msg.includes('Running experiment:')) {
         colorClass = 'text-amber-300';
         updateStep(3);
+        playRobotBeep(900, 'triangle', 0.03);
       } else if (msg.includes('Verifier verdict:')) {
         colorClass = msg.includes('SUPPORTED') ? 'text-emerald-300 font-bold' : 'text-rose-300';
         updateStep(4);
+        playRobotBeep(1100, 'sine', 0.05);
       } else if (msg.includes('Investigation Complete')) {
-        colorClass = 'text-cyan-300 font-extrabold';
+        colorClass = 'text-cyan-300 font-bold';
         updateStep(5);
       }
       appendTerminal(msg, colorClass);
     }
 
     function renderFullResults(data) {
-      // Update HUD
-      document.getElementById('hudHypotheses').textContent = `${data.hypotheses ? data.hypotheses.length : 0} Verified`;
+      document.getElementById('hudHypotheses').textContent = `${data.hypotheses ? data.hypotheses.length : 0} VERIFIED`;
       document.getElementById('hudConfidence').textContent = data.diagnosis.confidence || 'HIGH';
-      document.getElementById('hudEvidence').textContent = `${data.evidence ? data.evidence.length : 0} Collected`;
+      document.getElementById('hudEvidence').textContent = `${data.evidence ? data.evidence.length : 0} ARTIFACTS`;
 
-      // Update Diagnosis
       document.getElementById('diagRootCause').textContent = data.diagnosis.rootCause;
       document.getElementById('diagConfidence').textContent = `CONFIDENCE: ${data.diagnosis.confidence}`;
 
-      // Update Hypotheses List
       const hypList = document.getElementById('hypothesesList');
       if (data.hypotheses && data.hypotheses.length > 0) {
         hypList.innerHTML = data.hypotheses.map(h => {
           const isSup = h.status === 'SUPPORTED';
           const isRej = h.status === 'REJECTED';
-          const badgeClass = isSup ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : (isRej ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' : 'bg-amber-500/20 text-amber-300 border-amber-500/30');
+          const badgeClass = isSup ? 'border-emerald-500 text-emerald-400 bg-emerald-950/60' : (isRej ? 'border-rose-500 text-rose-400 bg-rose-950/60' : 'border-amber-500 text-amber-400 bg-amber-950/60');
           const icon = isSup ? '✓' : (isRej ? '✗' : '?');
 
-          return `<div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1.5">
+          return `<div class="p-3 rounded bg-slate-900 border border-cyan-500/30 space-y-1">
             <div class="flex items-center justify-between">
-              <span class="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border ${badgeClass}">${icon} ${h.status}</span>
-              <span class="text-[10px] font-mono text-slate-500">${h.likelySourceLocation || 'repo'}</span>
+              <span class="text-[10px] px-2 py-0.5 rounded border ${badgeClass} font-bold font-mono">${icon} ${h.status}</span>
+              <span class="text-[10px] text-slate-500 font-mono">${h.likelySourceLocation || 'repo'}</span>
             </div>
-            <div class="text-xs text-slate-200 font-medium">${h.statement}</div>
-            <div class="text-[11px] text-slate-400 font-mono">${h.reasoning || ''}</div>
+            <div class="text-xs text-slate-200 font-bold">${h.statement}</div>
+            <div class="text-[11px] text-slate-400">${h.reasoning || ''}</div>
           </div>`;
         }).join('');
       }
 
-      // Update Evidence List
       const evList = document.getElementById('evidenceList');
       if (data.evidence && data.evidence.length > 0) {
         evList.innerHTML = data.evidence.map(e => `
-          <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1 font-mono text-xs">
+          <div class="p-3 rounded bg-black/80 border border-cyan-500/20 space-y-1 text-xs">
             <div class="text-cyan-400 font-bold">$ ${e.source}</div>
-            <pre class="text-slate-400 text-[11px] whitespace-pre-wrap max-h-24 overflow-y-auto terminal-scrollbar bg-slate-900/60 p-2 rounded">${escapeHtml(e.content)}</pre>
+            <pre class="text-slate-400 text-[11px] whitespace-pre-wrap max-h-24 overflow-y-auto hud-scroll bg-slate-950 p-2 rounded">${escapeHtml(e.content)}</pre>
             <div class="flex gap-2 pt-1">
-              ${e.supports ? '<span class="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800">GROUND TRUTH SUPPORTS</span>' : ''}
-              ${e.contradicts ? '<span class="text-[9px] font-bold text-rose-400 bg-rose-950/60 px-1.5 py-0.5 rounded border border-rose-800">REFUTED</span>' : ''}
+              ${e.supports ? '<span class="text-[9px] font-bold text-emerald-400 bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-700">GROUND TRUTH PROVEN</span>' : ''}
+              ${e.contradicts ? '<span class="text-[9px] font-bold text-rose-400 bg-rose-950 px-1.5 py-0.5 rounded border border-rose-700">REFUTED</span>' : ''}
             </div>
           </div>
         `).join('');
       }
 
-      // Update Patch Studio
       const diffOut = document.getElementById('patchDiffOutput');
       if (data.diagnosis.suggestedFix) {
         diffOut.innerHTML = formatDiff(data.diagnosis.suggestedFix);
       } else {
-        diffOut.textContent = 'No confident fix patch could be synthesized.';
+        diffOut.textContent = '[No confident fix patch could be synthesized]';
       }
     }
 
     async function applyPatchLive() {
       if (!currentData || !currentData.diagnosis || !currentData.diagnosis.suggestedFix) {
-        showToast('No active patch available to apply!', true);
+        showToast('No patch available to apply!', true);
         return;
       }
 
+      playRobotBeep(950, 'square', 0.08);
       const repoPath = document.getElementById('repoPath').value;
       const btn = document.getElementById('applyBtn');
       const statusEl = document.getElementById('postPatchStatus');
       const statusText = document.getElementById('postPatchStatusText');
 
       btn.disabled = true;
-      btn.textContent = 'Applying...';
+      btn.textContent = 'APPLYING...';
 
       try {
         const res = await fetch('/apply-patch', {
@@ -698,19 +727,20 @@
         });
         const result = await res.json();
         if (result.success) {
-          showToast('✨ Git patch cleanly applied to target repository!');
-          btn.textContent = 'Applied ✓';
+          playRobotBeep(1200, 'sine', 0.15);
+          showToast('🤖 Fix applied cleanly to repository target!');
+          btn.textContent = 'APPLIED ✓';
           if (result.verification) {
             statusEl.classList.remove('hidden');
             statusText.textContent = `Verification: ${result.verification}`;
           }
         } else {
-          showToast(`❌ Error: ${result.error}`, true);
-          btn.textContent = 'Apply to Repo Live';
+          showToast(`Error: ${result.error}`, true);
+          btn.textContent = 'Apply Fix Live';
         }
       } catch (err) {
-        showToast(`❌ Network Error: ${err.message}`, true);
-        btn.textContent = 'Apply to Repo Live';
+        showToast(`Network Error: ${err.message}`, true);
+        btn.textContent = 'Apply Fix Live';
       } finally {
         btn.disabled = false;
       }
@@ -739,24 +769,23 @@
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `investigation_report_${Date.now()}.md`;
+          a.download = `ROBOT_PROVER_REPORT_${Date.now()}.md`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
-          showToast('Report downloaded as Markdown!');
+          showToast('Robot Diagnosis Report exported as Markdown!');
         }
       } catch (err) {
-        showToast(`Failed to export report: ${err.message}`, true);
+        showToast(`Export failed: ${err.message}`, true);
       }
     }
 
-    // Visual Helpers
     function appendTerminal(msg, colorClass = 'text-slate-300') {
       const term = document.getElementById('terminalOutput');
       const div = document.createElement('div');
       div.className = `py-0.5 ${colorClass}`;
-      div.textContent = `› ${msg}`;
+      div.textContent = `[PROVER-9000] › ${msg}`;
       term.appendChild(div);
       term.scrollTop = term.scrollHeight;
     }
@@ -764,11 +793,11 @@
     function formatDiff(diffText) {
       return diffText.split('\n').map(line => {
         if (line.startsWith('+++') || line.startsWith('---') || line.startsWith('@@')) {
-          return `<span class="diff-line-hdr">${escapeHtml(line)}</span>`;
+          return `<span class="diff-hdr">${escapeHtml(line)}</span>`;
         } else if (line.startsWith('+')) {
-          return `<span class="diff-line-add">${escapeHtml(line)}</span>`;
+          return `<span class="diff-add">${escapeHtml(line)}</span>`;
         } else if (line.startsWith('-')) {
-          return `<span class="diff-line-del">${escapeHtml(line)}</span>`;
+          return `<span class="diff-del">${escapeHtml(line)}</span>`;
         }
         return `<span>${escapeHtml(line)}</span>`;
       }).join('\n');
@@ -788,11 +817,11 @@
       if (isLoading) {
         icon.classList.add('hidden');
         spinner.classList.remove('hidden');
-        text.textContent = 'AUTONOMOUS REASONING IN PROGRESS...';
+        text.textContent = 'ROBOT REASONING SUBROUTINES ACTIVE...';
       } else {
         icon.classList.remove('hidden');
         spinner.classList.add('hidden');
-        text.textContent = 'LAUNCH AUTONOMOUS PROVER';
+        text.textContent = 'ENGAGE AUTONOMOUS PROVER DROID';
       }
     }
 
@@ -808,18 +837,10 @@
       clearInterval(timerInterval);
     }
 
-    function setTopStatus(text, dotClass) {
-      const pill = document.getElementById('topStatusPill');
-      const dot = document.getElementById('topStatusDot');
-      const label = document.getElementById('topStatusText');
-      label.textContent = text;
-      dot.className = `w-2 h-2 rounded-full ${dotClass}`;
-    }
-
     function showToast(message, isError = false) {
       const toast = document.getElementById('toastNotification');
       document.getElementById('toastMessage').textContent = message;
-      toast.className = `fixed bottom-6 right-6 z-50 transform translate-y-0 opacity-100 transition-all duration-300 glass-card px-4 py-3 rounded-xl border ${isError ? 'border-rose-500/40 text-rose-300' : 'border-emerald-500/40 text-emerald-300'} text-xs font-mono flex items-center gap-2.5 shadow-2xl`;
+      toast.className = `fixed bottom-6 right-6 z-50 transform translate-y-0 opacity-100 transition-all duration-300 mech-frame px-4 py-3 text-xs flex items-center gap-2.5 shadow-2xl ${isError ? 'border-rose-500 text-rose-300' : 'border-cyan-400 text-cyan-200'}`;
       setTimeout(() => {
         toast.className = toast.className.replace('translate-y-0 opacity-100', 'translate-y-20 opacity-0');
       }, 3500);
@@ -828,6 +849,7 @@
     function copyPatch() {
       if (currentData && currentData.diagnosis && currentData.diagnosis.suggestedFix) {
         navigator.clipboard.writeText(currentData.diagnosis.suggestedFix);
+        playRobotBeep(900, 'sine', 0.05);
         showToast('Patch copied to clipboard!');
       }
     }
@@ -835,7 +857,8 @@
     function copyTerminal() {
       const term = document.getElementById('terminalOutput');
       navigator.clipboard.writeText(term.innerText);
-      showToast('Terminal logs copied!');
+      playRobotBeep(900, 'sine', 0.05);
+      showToast('Stream logs copied!');
     }
   </script>
 </body>
