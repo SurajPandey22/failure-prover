@@ -11,8 +11,34 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('frontend'));
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+app.get('/examples', (req, res) => {
+  try {
+    const examplesDir = path.join(__dirname, '../examples');
+    const dirs = fs.readdirSync(examplesDir).filter(f => fs.statSync(path.join(examplesDir, f)).isDirectory());
+    
+    const examples = dirs.map(d => {
+      const logPath = path.join(examplesDir, d, 'failure.log');
+      let logContent = '';
+      if (fs.existsSync(logPath)) {
+        logContent = fs.readFileSync(logPath, 'utf-8');
+      }
+      return {
+        name: d,
+        path: `./examples/${d}`,
+        log: logContent
+      };
+    });
+    res.json(examples);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.post('/investigate', async (req, res) => {
