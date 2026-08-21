@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Failure Prover</title>
+  <style>
+    body { font-family: monospace; max-width: 800px; margin: 0 auto; padding: 20px; }
+    textarea { width: 100%; height: 200px; }
+    .box { border: 1px solid #ccc; padding: 10px; margin-top: 10px; }
+    .SUPPORTED { background-color: #d4edda; }
+    .REJECTED { background-color: #f8d7da; }
+    .INCONCLUSIVE { background-color: #fff3cd; }
+    .PENDING { background-color: #e2e3e5; }
+  </style>
+</head>
+<body>
+  <h1>Failure Prover</h1>
+  
+  <label>Repo Path:</label><br>
+  <input type="text" id="repoPath" value="./examples/parser_bug" style="width: 100%;"><br><br>
+
+  <label>Failure Log:</label><br>
+  <textarea id="logInput"></textarea><br>
+  
+  <button onclick="investigate()">Investigate</button>
+
+  <div id="results" style="display:none;">
+    <h2>Diagnosis</h2>
+    <div id="diagnosis" class="box"></div>
+    
+    <h2>Hypotheses</h2>
+    <div id="hypotheses"></div>
+    
+    <h2>Evidence Ledger</h2>
+    <div id="evidence"></div>
+  </div>
+
+  <script>
+    async function investigate() {
+      document.getElementById('results').style.display = 'none';
+      const log = document.getElementById('logInput').value;
+      const repoPath = document.getElementById('repoPath').value;
+      
+      const res = await fetch('/investigate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ log, repoPath })
+      });
+      
+      const data = await res.json();
+      
+      document.getElementById('results').style.display = 'block';
+      
+      document.getElementById('diagnosis').innerHTML = `
+        <strong>Root Cause:</strong> ${data.diagnosis.rootCause}<br>
+        <strong>Confidence:</strong> ${data.diagnosis.confidence}<br>
+      `;
+      
+      document.getElementById('hypotheses').innerHTML = data.hypotheses.map(h => `
+        <div class="box ${h.status}">
+          <strong>${h.status}</strong>: ${h.statement}
+        </div>
+      `).join('');
+
+      document.getElementById('evidence').innerHTML = data.evidence.map(e => `
+        <div class="box">
+          [${e.sourceType}] ${e.source}:<br>
+          <em>${e.content}</em><br>
+          Supports: ${e.supports}, Contradicts: ${e.contradicts}
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
