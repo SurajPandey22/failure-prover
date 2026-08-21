@@ -24,6 +24,10 @@ export class ExperimentRunner {
 
   constructor(private targetRepoPath: string) {}
 
+  public getTargetRepoPath(): string {
+    return this.targetRepoPath;
+  }
+
   private isTimeExceeded(): boolean {
     return (Date.now() - this.startTime) / 1000 >= this.MAX_RUNTIME_SECONDS;
   }

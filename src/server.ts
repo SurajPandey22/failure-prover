@@ -102,12 +102,15 @@ app.post('/logout', (req, res) => {
   return res.json({ success: true });
 });
 
+import { Observability } from './observability';
+
 // Apply auth to all API routes (not static files)
 app.use('/investigate', authMiddleware);
 app.use('/investigate-stream', authMiddleware);
 app.use('/apply-patch', authMiddleware);
 app.use('/export-report', authMiddleware);
 app.use('/examples', authMiddleware);
+app.use('/observability', authMiddleware);
 
 // ─── Static Frontend ──────────────────────────────────────────────────────────
 const frontendPath = fs.existsSync(path.resolve(process.cwd(), 'frontend'))
@@ -117,6 +120,10 @@ app.use(express.static(frontendPath));
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+app.get('/observability', (req, res) => {
+  res.json(Observability.getInstance().getSummary());
 });
 
 app.get('/examples', (req, res) => {

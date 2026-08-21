@@ -20,7 +20,7 @@ Do not include markdown blocks or any other text.`;
 
     const userPrompt = JSON.stringify(context, null, 2);
 
-    const responseText = await this.llm.generate({ systemPrompt, userPrompt });
+    const responseText = await this.llm.generate({ systemPrompt, userPrompt, promptName: 'HypothesisGenerator' });
 
     try {
       let cleaned = responseText.trim();

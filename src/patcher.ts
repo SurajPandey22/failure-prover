@@ -23,7 +23,8 @@ ${JSON.stringify(context, null, 2)}
 
     const response = await this.llm.generate({
       systemPrompt: 'You generate raw unified diffs to fix code based on proven root causes.',
-      userPrompt: prompt
+      userPrompt: prompt,
+      promptName: 'Patcher'
     });
 
     try {

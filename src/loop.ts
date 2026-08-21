@@ -5,6 +5,7 @@ import { HypothesisGenerator } from './generator';
 import { Ledger } from './ledger';
 import { Verifier } from './verifier';
 import { Patcher } from './patcher';
+import { Observability } from './observability';
 
 export class InvestigationLoop {
   constructor(
@@ -19,6 +20,10 @@ export class InvestigationLoop {
   }
 
   async run(context: FailureContext): Promise<Diagnosis> {
+    const obs = Observability.getInstance();
+    const sessionId = `session-${Date.now()}`;
+    obs.startSession(sessionId, this.runner.getTargetRepoPath());
+
     const generator = new HypothesisGenerator(this.llm);
     const verifier = new Verifier(this.llm);
     const patcher = new Patcher(this.llm);
@@ -39,9 +44,13 @@ export class InvestigationLoop {
       
       if (!pendingHypothesis) break;
 
-      this.emit(`\n[Step ${loopCount}] Investigating: ${pendingHypothesis.statement.substring(0, 50)}...`);
+      this.emit(`\n[Step {loopCount}] Investigating: ${pendingHypothesis.statement.substring(0, 50)}...`);
       const prompt = `Hypothesis: ${pendingHypothesis.statement}\nContext: ${JSON.stringify(context)}\nPropose next experiment command. Options: read file <path>, search files <query>, run pytest, inspect git diff. Return ONLY the command string.`;
-      let command = await this.llm.generate({ systemPrompt: 'You are an investigator.', userPrompt: prompt });
+      let command = await this.llm.generate({ 
+        systemPrompt: 'You are an investigator.', 
+        userPrompt: prompt,
+        promptName: 'AgentOrchestrator_NextCmd'
+      });
       command = command.trim().replace(/^`+|`+$/g, '');
 
       if (!command) {
@@ -61,7 +70,11 @@ export class InvestigationLoop {
 
       this.emit(`-> Evaluating experiment evidence...`);
       const evalPrompt = `Command: ${command}\nOutput: ${result.output}\nDoes this support or contradict the hypothesis: "${pendingHypothesis.statement}"? Return JSON: {"supports": true/false, "contradicts": true/false, "reason": "..."}`;
-      let evalResultStr = await this.llm.generate({ systemPrompt: 'You evaluate evidence strictly.', userPrompt: evalPrompt });
+      let evalResultStr = await this.llm.generate({ 
+        systemPrompt: 'You evaluate evidence strictly.', 
+        userPrompt: evalPrompt,
+        promptName: 'AgentOrchestrator_EvalEvidence'
+      });
       
       let supports = false;
       let contradicts = false;
@@ -115,6 +128,7 @@ export class InvestigationLoop {
       if (fix) diagnosis.suggestedFix = fix;
     }
 
+    obs.endSession();
     return diagnosis;
   }
 }

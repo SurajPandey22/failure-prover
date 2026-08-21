@@ -314,6 +314,9 @@ FAILED tests/test_parser.py::test_parse_header_auto - ValueError: invalid litera
             <button onclick="switchTab('patch')" id="tabBtn-patch" class="px-4 py-2 text-xs font-medium rounded-t-lg border-b-2 border-transparent text-zinc-400 hover:text-zinc-200 transition">
               Patch Studio
             </button>
+            <button onclick="switchTab('observability')" id="tabBtn-observability" class="px-4 py-2 text-xs font-medium rounded-t-lg border-b-2 border-transparent text-zinc-400 hover:text-zinc-200 transition">
+              Observability
+            </button>
           </div>
           
           <button onclick="downloadReportMarkdown()" id="exportReportBtn" class="hidden px-3 py-1.5 text-xs rounded-lg bg-zinc-900 border border-zinc-700 hover:border-zinc-500 text-zinc-300 transition flex items-center gap-1.5">
@@ -393,6 +396,65 @@ FAILED tests/test_parser.py::test_parse_header_auto - ValueError: invalid litera
 
           <div class="bg-zinc-950 rounded-lg p-4 text-xs font-mono overflow-x-auto border border-zinc-800 max-h-[360px]">
             <pre id="patchDiffOutput" class="text-zinc-300 leading-relaxed">No patch generated yet.</pre>
+          </div>
+        </div>
+
+        <!-- TAB 4: Observability -->
+        <div id="tabContent-observability" class="hidden bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4 flex-1">
+          <div class="grid grid-cols-3 gap-3">
+            <div class="bg-zinc-950 p-3 rounded-lg border border-zinc-800">
+              <div class="text-[9px] text-zinc-500 font-medium uppercase tracking-wider">Total Cost</div>
+              <div id="obsCost" class="text-sm font-bold text-zinc-100 font-mono mt-1">$0.000000</div>
+            </div>
+            <div class="bg-zinc-950 p-3 rounded-lg border border-zinc-800">
+              <div class="text-[9px] text-zinc-500 font-medium uppercase tracking-wider">Total Tokens</div>
+              <div id="obsTokens" class="text-sm font-bold text-zinc-100 font-mono mt-1">0</div>
+            </div>
+            <div class="bg-zinc-950 p-3 rounded-lg border border-zinc-800">
+              <div class="text-[9px] text-zinc-500 font-medium uppercase tracking-wider">Avg Latency</div>
+              <div id="obsLatency" class="text-sm font-bold text-zinc-100 font-mono mt-1">0ms</div>
+            </div>
+          </div>
+
+          <!-- Prompt Versioning Table -->
+          <div>
+            <h3 class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">Prompt Templates & Versioning</h3>
+            <div class="bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden">
+              <table class="w-full text-[10px] text-zinc-300 font-mono">
+                <thead class="bg-zinc-900 text-zinc-400 text-[9px] border-b border-zinc-800">
+                  <tr>
+                    <th class="py-2 px-3 text-left">Prompt Template</th>
+                    <th class="py-2 px-3 text-left">Version</th>
+                    <th class="py-2 px-3 text-left">MD5 Hash</th>
+                  </tr>
+                </thead>
+                <tbody id="obsPrompts">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Recent Call Traces -->
+          <div>
+            <h3 class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">Real-time LLM Latency & Cost Traces</h3>
+            <div class="bg-zinc-950 border border-zinc-800 rounded-lg max-h-48 overflow-y-auto">
+              <table class="w-full text-[9px] text-zinc-400 font-mono">
+                <thead class="bg-zinc-900 text-zinc-500 text-[8px] border-b border-zinc-800 sticky top-0">
+                  <tr>
+                    <th class="py-1.5 px-2.5 text-left">Timestamp</th>
+                    <th class="py-1.5 px-2.5 text-left">Prompt</th>
+                    <th class="py-1.5 px-2.5 text-left">Latency</th>
+                    <th class="py-1.5 px-2.5 text-left">Tokens (I/O)</th>
+                    <th class="py-1.5 px-2.5 text-left">Cost (USD)</th>
+                    <th class="py-1.5 px-2.5 text-left">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="obsCalls">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -755,7 +817,7 @@ FAILED tests/test_main.py::test_case_${i} - RuntimeError: Unhandled error in tas
     }
 
     function switchTab(tabName) {
-      ['terminal', 'hypotheses', 'patch'].forEach(t => {
+      ['terminal', 'hypotheses', 'patch', 'observability'].forEach(t => {
         document.getElementById(`tabContent-${t}`).classList.add('hidden');
         document.getElementById(`tabBtn-${t}`).className = 
           'px-4 py-2 text-xs font-medium rounded-t-lg border-b-2 border-transparent text-zinc-400 hover:text-zinc-200 transition';
@@ -764,6 +826,55 @@ FAILED tests/test_main.py::test_case_${i} - RuntimeError: Unhandled error in tas
       document.getElementById(`tabContent-${tabName}`).classList.remove('hidden');
       document.getElementById(`tabBtn-${tabName}`).className = 
         'px-4 py-2 text-xs font-medium rounded-t-lg border-b-2 border-blue-500 text-blue-400 bg-zinc-900 transition';
+
+      if (tabName === 'observability') {
+        loadObservabilityMetrics();
+      }
+    }
+
+    async function loadObservabilityMetrics() {
+      try {
+        const res = await fetch('/observability', { headers: { 'x-auth-token': getToken() } });
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('obsCost').textContent = `$${data.totalCostUsd.toFixed(6)}`;
+        document.getElementById('obsTokens').textContent = data.totalTokens.toLocaleString();
+        document.getElementById('obsLatency').textContent = `${data.averageLatencyMs}ms`;
+
+        // Render Prompts Versioning
+        const promptsBody = document.getElementById('obsPrompts');
+        promptsBody.innerHTML = data.promptTemplates.map(p => `
+          <tr class="border-b border-zinc-900 hover:bg-zinc-900/40">
+            <td class="py-2 px-3 text-zinc-300 font-medium">${p.name}</td>
+            <td class="py-2 px-3 text-blue-400 font-bold">${p.version}</td>
+            <td class="py-2 px-3 text-zinc-500 font-mono">${p.hash}</td>
+          </tr>
+        `).join('');
+
+        // Render Call Traces
+        const callsBody = document.getElementById('obsCalls');
+        if (!data.recentCalls || data.recentCalls.length === 0) {
+          callsBody.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-zinc-600">No traces recorded yet. Run an investigation!</td></tr>`;
+          return;
+        }
+        callsBody.innerHTML = data.recentCalls.map(c => {
+          const isErr = c.status === 'ERROR';
+          const statusClass = isErr ? 'text-red-400 bg-red-950/40 border border-red-900' : 'text-emerald-400 bg-emerald-950/40 border border-emerald-900';
+          const time = new Date(c.timestamp).toLocaleTimeString();
+          return `
+            <tr class="border-b border-zinc-900 hover:bg-zinc-900/40">
+              <td class="py-2 px-2.5 text-zinc-500">${time}</td>
+              <td class="py-2 px-2.5 text-zinc-300 font-medium">${c.promptName} <span class="text-[8px] text-zinc-600">v${c.promptVersion}</span></td>
+              <td class="py-2 px-2.5 text-zinc-400">${c.latencyMs}ms</td>
+              <td class="py-2 px-2.5 text-zinc-400">${c.inputTokens} / ${c.outputTokens}</td>
+              <td class="py-2 px-2.5 text-zinc-300">$${c.costUsd.toFixed(6)}</td>
+              <td class="py-2 px-2.5"><span class="px-1.5 py-0.5 rounded text-[8px] font-bold ${statusClass}">${c.status}</span></td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('Failed to load observability data:', err);
+      }
     }
 
     function updateStep(stepNumber) {

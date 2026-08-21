@@ -30,7 +30,8 @@ Return JSON only:
 
     const response = await this.llm.generate({
       systemPrompt: 'You independently verify evidence strictly based on facts.',
-      userPrompt: prompt
+      userPrompt: prompt,
+      promptName: 'IndependentVerifier'
     });
 
     try {
