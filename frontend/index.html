@@ -85,6 +85,11 @@ FAILED tests/test_parser.py::test_parse_header_auto - ValueError: invalid litera
             </div>
           </div>
 
+          <div id="fixContainer" class="hidden mb-6 p-4 bg-gray-900 border-l-4 border-green-500 rounded-r shadow-inner">
+            <h3 class="text-sm uppercase tracking-wider text-green-400 font-bold mb-2">Suggested Fix (Git Diff)</h3>
+            <pre id="suggestedFix" class="text-gray-300 font-mono text-xs overflow-x-auto whitespace-pre-wrap"></pre>
+          </div>
+
           <h3 class="font-bold text-gray-700 mb-2 border-b pb-1">Evaluated Hypotheses</h3>
           <div id="hypotheses" class="space-y-3 mb-6"></div>
 
@@ -163,6 +168,14 @@ FAILED tests/test_parser.py::test_parse_header_auto - ValueError: invalid litera
         
         document.getElementById('rootCause').innerText = data.diagnosis.rootCause;
         document.getElementById('confidenceLevel').innerText = data.diagnosis.confidence;
+        
+        const fixContainer = document.getElementById('fixContainer');
+        if (data.diagnosis.suggestedFix) {
+          fixContainer.classList.remove('hidden');
+          document.getElementById('suggestedFix').innerText = data.diagnosis.suggestedFix;
+        } else {
+          fixContainer.classList.add('hidden');
+        }
         
         const getStatusColor = (status) => {
           if (status === 'SUPPORTED') return 'bg-green-100 border-green-400 text-green-800';

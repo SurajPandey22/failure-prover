@@ -14,6 +14,26 @@ Built entirely from scratch in Node.js/TypeScript without bloated frameworks lik
 - **Phase 5: Independent Verifier.** A secondary LLM pass acting strictly as a judge—a hypothesis cannot be `SUPPORTED` without hard repository evidence.
 - **Evaluation Harness.** Built-in 20-case dataset spanning boundary logic, config missing, data validation, and more to continuously benchmark accuracy.
 
+## 🧠 System Architecture
+
+```mermaid
+graph TD
+    A[Failure Context<br>pytest log + code] --> B[Hypothesis Generator]
+    B --> C(2-4 Hypotheses)
+    C --> D[Investigation Loop]
+    
+    subgraph Autonomous Agent
+        D -->|Chooses Experiment| E(Experiment Runner)
+        E -->|Safe Execution| F[Git / Pytest / FS]
+        F -->|Command Output| G[Evidence Evaluator]
+        G --> H[(Evidence Ledger)]
+        H -->|Updates State| D
+    end
+    
+    D -->|Supported Hypothesis| I[Independent Verifier]
+    I -->|Objective Validation| J((Final Diagnosis))
+```
+
 ## 🛠️ Tech Stack
 - **Backend:** Node.js, Express, TypeScript
 - **LLM Boundary:** Google Gemini (`gemini-2.5-pro`) via REST API

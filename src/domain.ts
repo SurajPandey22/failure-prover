@@ -68,4 +68,5 @@ export interface Diagnosis {
   experiments: string[];
   confidence: ConfidenceLevel;
   unresolvedQuestions: string[];
+  suggestedFix?: string;
 }
