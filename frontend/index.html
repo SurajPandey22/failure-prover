@@ -30,8 +30,7 @@
           animation: {
             'glow-pulse': 'glowPulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             'beam': 'beam 2s linear infinite',
-            'float': 'float 6s ease-in-out infinite',
-            'scanline': 'scanline 8s linear infinite'
+            'float': 'float 6s ease-in-out infinite'
           },
           keyframes: {
             glowPulse: {
@@ -45,10 +44,6 @@
             float: {
               '0%, 100%': { transform: 'translateY(0px)' },
               '50%': { transform: 'translateY(-6px)' }
-            },
-            scanline: {
-              '0%': { transform: 'translateY(-100%)' },
-              '100%': { transform: 'translateY(1000%)' }
             }
           }
         }
@@ -87,10 +82,6 @@
       transform: translateY(-2px);
     }
 
-    .neon-text-glow {
-      text-shadow: 0 0 20px rgba(99, 102, 241, 0.6), 0 0 40px rgba(6, 182, 212, 0.3);
-    }
-
     .terminal-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
     .terminal-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
     .terminal-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
@@ -99,17 +90,6 @@
     .diff-line-add { background: rgba(16, 185, 129, 0.12); color: #34d399; }
     .diff-line-del { background: rgba(244, 63, 94, 0.12); color: #f87171; }
     .diff-line-hdr { background: rgba(6, 182, 212, 0.10); color: #38bdf8; }
-
-    .step-active {
-      border-color: #06b6d4;
-      box-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
-      color: #38bdf8;
-    }
-    .step-done {
-      border-color: #10b981;
-      background: rgba(16, 185, 129, 0.1);
-      color: #34d399;
-    }
 
     .btn-gradient {
       background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #06b6d4 100%);
@@ -288,7 +268,7 @@
         <!-- Main Action Trigger -->
         <button onclick="investigate()" id="runBtn" 
           class="w-full btn-gradient text-white font-mono font-bold py-4 px-6 rounded-2xl shadow-xl flex items-center justify-center gap-3 transition-all duration-300 transform active:scale-[0.98]">
-          <svg id="btnIcon" class="w-5 h-5 text-white animate-spin-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <svg id="btnIcon" class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
@@ -345,8 +325,11 @@
               🛠️ Patch Studio
             </button>
           </div>
-          <div id="tabPillStatus" class="text-[10px] font-mono text-cyan-400 px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60">
-            STREAM ACTIVE
+          <div class="flex items-center gap-2">
+            <button onclick="downloadReportMarkdown()" id="exportReportBtn" class="hidden px-2.5 py-1 text-[11px] font-mono rounded-lg bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-700/60 text-indigo-300 transition flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              Export Report .md
+            </button>
           </div>
         </div>
 
@@ -418,6 +401,12 @@
             </div>
           </div>
 
+          <!-- Post-Patch Verification Status -->
+          <div id="postPatchStatus" class="hidden p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 font-mono text-xs flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span id="postPatchStatusText">Verification pending...</span>
+          </div>
+
           <div class="bg-slate-950 rounded-xl p-4 font-mono text-xs overflow-x-auto terminal-scrollbar border border-slate-800/80 max-h-[360px]">
             <pre id="patchDiffOutput" class="text-slate-300 leading-relaxed select-text">No patch generated yet.</pre>
           </div>
@@ -455,7 +444,7 @@
   <!-- Application Frontend Logic -->
   <script>
     let loadedExamples = [];
-    let currentDiagnosis = null;
+    let currentData = null;
     let timerInterval = null;
     let startTime = 0;
 
@@ -587,10 +576,11 @@
                 if (data.type === 'progress') {
                   handleStreamProgress(data.message);
                 } else if (data.type === 'complete') {
-                  currentDiagnosis = data.diagnosis;
+                  currentData = data;
                   renderFullResults(data);
                   updateStep(5);
                   setTopStatus('DIAGNOSIS COMPLETE', 'bg-emerald-400');
+                  document.getElementById('exportReportBtn').classList.remove('hidden');
                   showToast('Autonomous investigation successfully completed!');
                 } else if (data.type === 'error') {
                   throw new Error(data.message);
@@ -687,13 +677,16 @@
     }
 
     async function applyPatchLive() {
-      if (!currentDiagnosis || !currentDiagnosis.suggestedFix) {
+      if (!currentData || !currentData.diagnosis || !currentData.diagnosis.suggestedFix) {
         showToast('No active patch available to apply!', true);
         return;
       }
 
       const repoPath = document.getElementById('repoPath').value;
       const btn = document.getElementById('applyBtn');
+      const statusEl = document.getElementById('postPatchStatus');
+      const statusText = document.getElementById('postPatchStatusText');
+
       btn.disabled = true;
       btn.textContent = 'Applying...';
 
@@ -701,12 +694,16 @@
         const res = await fetch('/apply-patch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ repoPath, patch: currentDiagnosis.suggestedFix })
+          body: JSON.stringify({ repoPath, patch: currentData.diagnosis.suggestedFix })
         });
         const result = await res.json();
         if (result.success) {
           showToast('✨ Git patch cleanly applied to target repository!');
           btn.textContent = 'Applied ✓';
+          if (result.verification) {
+            statusEl.classList.remove('hidden');
+            statusText.textContent = `Verification: ${result.verification}`;
+          }
         } else {
           showToast(`❌ Error: ${result.error}`, true);
           btn.textContent = 'Apply to Repo Live';
@@ -716,6 +713,41 @@
         btn.textContent = 'Apply to Repo Live';
       } finally {
         btn.disabled = false;
+      }
+    }
+
+    async function downloadReportMarkdown() {
+      if (!currentData) {
+        showToast('Run an investigation first!', true);
+        return;
+      }
+      try {
+        const repoPath = document.getElementById('repoPath').value;
+        const res = await fetch('/export-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            repoPath,
+            diagnosis: currentData.diagnosis,
+            hypotheses: currentData.hypotheses,
+            evidence: currentData.evidence
+          })
+        });
+        const data = await res.json();
+        if (data.markdown) {
+          const blob = new Blob([data.markdown], { type: 'text/markdown' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `investigation_report_${Date.now()}.md`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToast('Report downloaded as Markdown!');
+        }
+      } catch (err) {
+        showToast(`Failed to export report: ${err.message}`, true);
       }
     }
 
@@ -794,8 +826,8 @@
     }
 
     function copyPatch() {
-      if (currentDiagnosis && currentDiagnosis.suggestedFix) {
-        navigator.clipboard.writeText(currentDiagnosis.suggestedFix);
+      if (currentData && currentData.diagnosis && currentData.diagnosis.suggestedFix) {
+        navigator.clipboard.writeText(currentData.diagnosis.suggestedFix);
         showToast('Patch copied to clipboard!');
       }
     }

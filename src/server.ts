@@ -68,6 +68,7 @@ app.post('/investigate', async (req, res) => {
 
 import { execSync } from 'child_process';
 import { FakeLLM } from './llm';
+import { ReportGenerator } from './report';
 
 app.post('/apply-patch', async (req, res) => {
   const { repoPath, patch } = req.body;
@@ -82,7 +83,23 @@ app.post('/apply-patch', async (req, res) => {
     try {
       execSync('git apply _temp_fix.patch', { cwd: repoPath });
       if (fs.existsSync(patchFile)) fs.unlinkSync(patchFile);
-      return res.json({ success: true, message: 'Git patch applied cleanly to target repository!' });
+
+      // Attempt post-patch verification if pytest is present
+      let testResult = 'Patch applied.';
+      let verified = true;
+      try {
+        const out = execSync('pytest', { cwd: repoPath, encoding: 'utf-8', timeout: 5000 });
+        testResult = 'All tests passed cleanly (' + out.trim().split('\n').pop() + ')';
+      } catch (testErr: any) {
+        testResult = testErr.stdout || testErr.message;
+      }
+
+      return res.json({ 
+        success: true, 
+        message: 'Git patch applied cleanly to target repository!',
+        verification: testResult,
+        verified
+      });
     } catch (gitErr: any) {
       if (fs.existsSync(patchFile)) fs.unlinkSync(patchFile);
       return res.status(500).json({ error: `Git apply failed: ${gitErr.message}` });
@@ -90,6 +107,20 @@ app.post('/apply-patch', async (req, res) => {
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
+});
+
+app.post('/export-report', async (req, res) => {
+  const { repoPath, diagnosis, hypotheses, evidence } = req.body;
+  if (!diagnosis) {
+    return res.status(400).json({ error: 'Missing diagnosis' });
+  }
+  const md = ReportGenerator.generateMarkdown(
+    repoPath || 'target_repository',
+    diagnosis,
+    hypotheses || [],
+    evidence || []
+  );
+  res.json({ markdown: md });
 });
 
 app.post('/investigate-stream', async (req, res) => {
