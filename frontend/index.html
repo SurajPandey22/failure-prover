@@ -3,73 +3,164 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Failure Prover</title>
-  <style>
-    body { font-family: monospace; max-width: 800px; margin: 0 auto; padding: 20px; }
-    textarea { width: 100%; height: 200px; }
-    .box { border: 1px solid #ccc; padding: 10px; margin-top: 10px; }
-    .SUPPORTED { background-color: #d4edda; }
-    .REJECTED { background-color: #f8d7da; }
-    .INCONCLUSIVE { background-color: #fff3cd; }
-    .PENDING { background-color: #e2e3e5; }
-  </style>
+  <title>Failure Prover - AI Debugger</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>Failure Prover</h1>
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen">
   
-  <label>Repo Path:</label><br>
-  <input type="text" id="repoPath" value="./examples/parser_bug" style="width: 100%;"><br><br>
+  <div class="max-w-5xl mx-auto p-6">
+    <header class="mb-8 border-b pb-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-indigo-700">Failure Prover</h1>
+        <p class="text-gray-500 text-sm mt-1">Autonomous Verification-Driven AI Debugger</p>
+      </div>
+      <div class="text-sm px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full font-semibold">
+        Hackathon MVP
+      </div>
+    </header>
 
-  <label>Failure Log:</label><br>
-  <textarea id="logInput"></textarea><br>
-  
-  <button onclick="investigate()">Investigate</button>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      
+      <!-- Input Column -->
+      <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Investigation Target</h2>
+        
+        <label class="block text-sm font-medium text-gray-700 mb-1">Target Repository Path</label>
+        <input type="text" id="repoPath" value="./examples/parser_bug" 
+          class="w-full border border-gray-300 rounded p-2 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm">
 
-  <div id="results" style="display:none;">
-    <h2>Diagnosis</h2>
-    <div id="diagnosis" class="box"></div>
-    
-    <h2>Hypotheses</h2>
-    <div id="hypotheses"></div>
-    
-    <h2>Evidence Ledger</h2>
-    <div id="evidence"></div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Pytest Failure Log</label>
+        <textarea id="logInput" class="w-full border border-gray-300 rounded p-2 h-48 font-mono text-sm mb-4 focus:ring-2 focus:ring-indigo-500 outline-none">
+============================= test session starts ==============================
+collected 2 items
+tests/test_parser.py .F                                                    [100%]
+=================================== FAILURES ===================================
+___________________________ test_parse_header_auto ___________________________
+    def test_parse_header_auto():
+        # This will fail with a ValueError
+>       res = parse_header("2,Bob,AUTO")
+tests/test_parser.py:9: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+header_line = '2,Bob,AUTO'
+    def parse_header(header_line: str):
+        parts = header_line.split(",")
+        if len(parts) != 3:
+            raise ValueError("Invalid header format")
+>       age = int(parts[2])
+E       ValueError: invalid literal for int() with base 10: 'AUTO'
+parser.py:8: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_parser.py::test_parse_header_auto - ValueError: invalid literal for int() with base 10: 'AUTO'
+        </textarea>
+        
+        <button onclick="investigate()" id="runBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition">
+          Start Investigation
+        </button>
+      </div>
+
+      <!-- Output Column -->
+      <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 overflow-y-auto" style="max-height: 80vh;">
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Investigation Results</h2>
+        
+        <div id="loading" class="hidden flex items-center justify-center h-32 space-x-2 text-indigo-600">
+          <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span class="font-medium text-lg">Agents investigating...</span>
+        </div>
+
+        <div id="results" class="hidden">
+          
+          <div class="mb-6 p-4 bg-indigo-50 border-l-4 border-indigo-500 rounded-r">
+            <h3 class="text-sm uppercase tracking-wider text-indigo-800 font-bold mb-1">Final Diagnosis</h3>
+            <p id="rootCause" class="text-gray-900 font-medium"></p>
+            <div class="mt-2 text-xs font-semibold px-2 py-1 bg-white inline-block rounded text-indigo-700 border border-indigo-200">
+              Confidence: <span id="confidenceLevel"></span>
+            </div>
+          </div>
+
+          <h3 class="font-bold text-gray-700 mb-2 border-b pb-1">Evaluated Hypotheses</h3>
+          <div id="hypotheses" class="space-y-3 mb-6"></div>
+
+          <h3 class="font-bold text-gray-700 mb-2 border-b pb-1">Evidence Ledger</h3>
+          <div id="evidence" class="space-y-3 text-sm"></div>
+        </div>
+
+        <div id="errorBox" class="hidden mt-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r text-sm"></div>
+
+      </div>
+    </div>
   </div>
 
   <script>
     async function investigate() {
-      document.getElementById('results').style.display = 'none';
+      const btn = document.getElementById('runBtn');
+      const resultsDiv = document.getElementById('results');
+      const loadingDiv = document.getElementById('loading');
+      const errorBox = document.getElementById('errorBox');
+      
+      btn.disabled = true;
+      btn.classList.add('opacity-50');
+      resultsDiv.classList.add('hidden');
+      errorBox.classList.add('hidden');
+      loadingDiv.classList.remove('hidden');
+
       const log = document.getElementById('logInput').value;
       const repoPath = document.getElementById('repoPath').value;
       
-      const res = await fetch('/investigate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ log, repoPath })
-      });
-      
-      const data = await res.json();
-      
-      document.getElementById('results').style.display = 'block';
-      
-      document.getElementById('diagnosis').innerHTML = `
-        <strong>Root Cause:</strong> ${data.diagnosis.rootCause}<br>
-        <strong>Confidence:</strong> ${data.diagnosis.confidence}<br>
-      `;
-      
-      document.getElementById('hypotheses').innerHTML = data.hypotheses.map(h => `
-        <div class="box ${h.status}">
-          <strong>${h.status}</strong>: ${h.statement}
-        </div>
-      `).join('');
+      try {
+        const res = await fetch('/investigate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ log, repoPath })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Unknown server error');
+        }
 
-      document.getElementById('evidence').innerHTML = data.evidence.map(e => `
-        <div class="box">
-          [${e.sourceType}] ${e.source}:<br>
-          <em>${e.content}</em><br>
-          Supports: ${e.supports}, Contradicts: ${e.contradicts}
-        </div>
-      `).join('');
+        loadingDiv.classList.add('hidden');
+        resultsDiv.classList.remove('hidden');
+        
+        document.getElementById('rootCause').innerText = data.diagnosis.rootCause;
+        document.getElementById('confidenceLevel').innerText = data.diagnosis.confidence;
+        
+        const getStatusColor = (status) => {
+          if (status === 'SUPPORTED') return 'bg-green-100 border-green-400 text-green-800';
+          if (status === 'REJECTED') return 'bg-red-100 border-red-400 text-red-800';
+          if (status === 'INCONCLUSIVE') return 'bg-yellow-100 border-yellow-400 text-yellow-800';
+          return 'bg-gray-100 border-gray-400 text-gray-800';
+        };
+
+        document.getElementById('hypotheses').innerHTML = data.hypotheses.map(h => `
+          <div class="p-3 border-l-4 rounded-r shadow-sm ${getStatusColor(h.status)}">
+            <span class="font-bold text-xs uppercase block mb-1">${h.status}</span>
+            <span class="text-sm">${h.statement}</span>
+          </div>
+        `).join('');
+
+        document.getElementById('evidence').innerHTML = data.evidence.map(e => `
+          <div class="bg-gray-50 p-3 rounded border border-gray-200 font-mono text-xs">
+            <div class="text-indigo-600 font-bold mb-1">$&gt; ${e.source}</div>
+            <div class="text-gray-600 mb-2 truncate">${e.content}</div>
+            <div class="flex space-x-2">
+              ${e.supports ? '<span class="bg-green-100 text-green-800 px-1 rounded">Supports</span>' : ''}
+              ${e.contradicts ? '<span class="bg-red-100 text-red-800 px-1 rounded">Contradicts</span>' : ''}
+            </div>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        loadingDiv.classList.add('hidden');
+        errorBox.classList.remove('hidden');
+        errorBox.innerText = 'Error: ' + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50');
+      }
     }
   </script>
 </body>
