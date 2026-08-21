@@ -1,0 +1,2 @@
+E       AssertionError: assert 'c:\\dir/file.txt' == 'c:\\dir\\file.txt'
+main.py:4: AssertionError

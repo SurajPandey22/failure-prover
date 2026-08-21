@@ -24,7 +24,7 @@ async function runEval() {
     const rawLog = fs.readFileSync(logPath, 'utf-8');
     const context = Parser.parse(rawLog);
 
-    console.log(\`Evaluating case: \${d}...\`);
+    console.log('Evaluating case: ' + d + '...');
 
     const llm = new GeminiLLM();
     const runner = new ExperimentRunner(casePath);

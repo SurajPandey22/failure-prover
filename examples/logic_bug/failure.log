@@ -1,0 +1,2 @@
+E       AssertionError: assert -10.0 >= 0
+main.py:5: AssertionError

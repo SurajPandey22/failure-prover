@@ -1,0 +1,2 @@
+E       AssertionError: assert {'status': 'success', 'code': 200} == {'status': 'ok', 'code': 200}
+test_main.py:4: AssertionError

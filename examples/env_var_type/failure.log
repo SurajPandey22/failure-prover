@@ -1,0 +1,2 @@
+E       ValueError: invalid literal for int() with base 10: 'not-a-number'
+main.py:4: ValueError

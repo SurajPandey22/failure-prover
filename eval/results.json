@@ -1,0 +1,248 @@
+{
+  "totalCases": 20,
+  "correctCases": 0,
+  "averageSteps": 0,
+  "averageRuntime": 0.15,
+  "results": [
+    {
+      "case": "boundary_condition",
+      "durationMs": 1,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "3",
+        "category": "boundary condition"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "config_missing",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "4",
+        "category": "configuration"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "data_validation",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "4",
+        "category": "data validation"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "env_var_type",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "4",
+        "category": "environment variables"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "generic_case_1",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "2",
+        "category": "generic"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "generic_case_10",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "2",
+        "category": "generic"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "generic_case_11",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "2",
+        "category": "generic"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "generic_case_12",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "2",
+        "category": "generic"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "generic_case_2",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "2",
+        "category": "generic"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "generic_case_3",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "2",
+        "category": "generic"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "generic_case_4",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "2",
+        "category": "generic"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "generic_case_5",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "2",
+        "category": "generic"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "generic_case_6",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "2",
+        "category": "generic"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "generic_case_7",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "2",
+        "category": "generic"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "generic_case_8",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "2",
+        "category": "generic"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "generic_case_9",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "2",
+        "category": "generic"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "logic_bug",
+      "durationMs": 1,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "5",
+        "category": "simple logic bug"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "parser_bug",
+      "durationMs": 1,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "root_cause_file": "parser.py",
+        "root_cause_line": "8",
+        "category": "incorrect assumptions"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "path_handling",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "main.py",
+        "rootCause_line": "4",
+        "category": "file/path handling"
+      },
+      "error": "API Key is missing"
+    },
+    {
+      "case": "test_expectation",
+      "durationMs": 0,
+      "isCorrect": false,
+      "steps": 0,
+      "expected": {
+        "rootCause_file": "test_main.py",
+        "rootCause_line": "4",
+        "category": "test expectation"
+      },
+      "error": "API Key is missing"
+    }
+  ]
+}
