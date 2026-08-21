@@ -1,20 +1,17 @@
-FROM node:24-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Install git for git commands
-RUN apk add --no-cache git
+# Install git, python3 and pytest for sandbox experiments
+RUN apk add --no-cache git python3 py3-pytest
 
-COPY package*.json ./
-RUN npm install --only=production
-
-# Install ts-node globally to run typescript directly in production for the hackathon
-# In a real app we'd build with tsc first.
-RUN npm install -g ts-node typescript
+COPY package*.json tsconfig.json ./
+RUN npm install
 
 COPY . .
+RUN npm run build
 
-ENV PORT=8080
-EXPOSE 8080
+ENV PORT=10000
+EXPOSE 10000
 
-CMD ["ts-node", "src/server.ts"]
+CMD ["npm", "start"]
