@@ -1,4 +1,4 @@
-import { FailureContext, Hypothesis, HypothesisStatus, ConfidenceLevel, Evidence, EvidenceSourceType, Diagnosis } from './domain';
+import { FailureContext, Hypothesis, HypothesisStatus, ConfidenceLevel, Evidence, EvidenceSourceType, Diagnosis, ProgressCallback } from './domain';
 import { ILLMProvider } from './llm';
 import { ExperimentRunner } from './execution';
 import { HypothesisGenerator } from './generator';
@@ -10,18 +10,25 @@ export class InvestigationLoop {
   constructor(
     private llm: ILLMProvider,
     private runner: ExperimentRunner,
-    private ledger: Ledger
+    private ledger: Ledger,
+    private onProgress?: ProgressCallback
   ) {}
+
+  private emit(msg: string) {
+    if (this.onProgress) this.onProgress(msg);
+  }
 
   async run(context: FailureContext): Promise<Diagnosis> {
     const generator = new HypothesisGenerator(this.llm);
     const verifier = new Verifier(this.llm);
     const patcher = new Patcher(this.llm);
     
+    this.emit('Generating initial hypotheses from failure context...');
     let hypotheses = await generator.generate(context);
     
     for (const h of hypotheses) {
       this.ledger.addHypothesis(h);
+      this.emit(`-> Hypothesis created: ${h.statement.substring(0, 50)}...`);
     }
 
     let loopCount = 0;
@@ -32,6 +39,7 @@ export class InvestigationLoop {
       
       if (!pendingHypothesis) break;
 
+      this.emit(`\n[Step ${loopCount}] Investigating: ${pendingHypothesis.statement.substring(0, 50)}...`);
       const prompt = `Hypothesis: ${pendingHypothesis.statement}\nContext: ${JSON.stringify(context)}\nPropose next experiment command. Options: read file <path>, search files <query>, run pytest, inspect git diff. Return ONLY the command string.`;
       let command = await this.llm.generate({ systemPrompt: 'You are an investigator.', userPrompt: prompt });
       command = command.trim().replace(/^`+|`+$/g, '');
@@ -41,14 +49,17 @@ export class InvestigationLoop {
         continue;
       }
 
+      this.emit(`-> Running experiment: ${command}`);
       let result;
       try {
         result = await this.runner.runOperation(command);
       } catch (e: any) {
+        this.emit(`-> Experiment failed: ${e.message}`);
         pendingHypothesis.status = HypothesisStatus.INCONCLUSIVE;
         continue; 
       }
 
+      this.emit(`-> Evaluating experiment evidence...`);
       const evalPrompt = `Command: ${command}\nOutput: ${result.output}\nDoes this support or contradict the hypothesis: "${pendingHypothesis.statement}"? Return JSON: {"supports": true/false, "contradicts": true/false, "reason": "..."}`;
       let evalResultStr = await this.llm.generate({ systemPrompt: 'You evaluate evidence strictly.', userPrompt: evalPrompt });
       
@@ -76,15 +87,19 @@ export class InvestigationLoop {
       pendingHypothesis.status = this.ledger.evaluateHypothesisStatus(pendingHypothesis.id);
       
       if (pendingHypothesis.status === HypothesisStatus.SUPPORTED) {
+        this.emit(`-> Hypothesis conditionally supported. Handing to Independent Verifier...`);
         const evFor = pendingHypothesis.evidenceFor.map(id => this.ledger.getEvidence(id)!);
         const evAgainst = pendingHypothesis.evidenceAgainst.map(id => this.ledger.getEvidence(id)!);
         const verifiedStatus = await verifier.verify(pendingHypothesis, evFor, evAgainst, context);
         pendingHypothesis.status = verifiedStatus;
+        this.emit(`-> Verifier verdict: ${verifiedStatus}`);
       }
     }
 
     const allHyp = this.ledger.getAllHypotheses();
     const supported = allHyp.find(h => h.status === HypothesisStatus.SUPPORTED);
+    
+    this.emit(`\nInvestigation Complete. Root cause found: ${supported ? 'YES' : 'NO'}`);
     
     const diagnosis: Diagnosis = {
       rootCause: supported ? supported.statement : 'Unknown',

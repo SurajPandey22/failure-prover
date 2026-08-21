@@ -12,6 +12,8 @@ export enum ConfidenceLevel {
   CERTAIN = 'CERTAIN'
 }
 
+export type ProgressCallback = (message: string) => void;
+
 export enum EvidenceSourceType {
   LOG = 'LOG',
   FILE = 'FILE',

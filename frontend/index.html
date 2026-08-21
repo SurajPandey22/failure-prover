@@ -140,67 +140,53 @@ FAILED tests/test_parser.py::test_parse_header_auto - ValueError: invalid litera
       const resultsDiv = document.getElementById('results');
       const loadingDiv = document.getElementById('loading');
       const errorBox = document.getElementById('errorBox');
+      const terminal = document.getElementById('terminalOutput');
       
       btn.disabled = true;
       btn.classList.add('opacity-50');
       resultsDiv.classList.add('hidden');
       errorBox.classList.add('hidden');
       loadingDiv.classList.remove('hidden');
-
+      terminal.innerHTML = '';
+      
       const log = document.getElementById('logInput').value;
       const repoPath = document.getElementById('repoPath').value;
       
       try {
-        const res = await fetch('/investigate', {
+        const res = await fetch('/investigate-stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ log, repoPath })
         });
         
-        const data = await res.json();
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let done = false;
         
-        if (!res.ok) {
-          throw new Error(data.error || 'Unknown server error');
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+          if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n\n');
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = JSON.parse(line.substring(6));
+                
+                if (data.type === 'progress') {
+                  terminal.innerHTML += `<div>> ${data.message}</div>`;
+                  terminal.scrollTop = terminal.scrollHeight;
+                } else if (data.type === 'complete') {
+                  loadingDiv.classList.add('hidden');
+                  resultsDiv.classList.remove('hidden');
+                  renderResults(data);
+                } else if (data.type === 'error') {
+                  throw new Error(data.message);
+                }
+              }
+            }
+          }
         }
-
-        loadingDiv.classList.add('hidden');
-        resultsDiv.classList.remove('hidden');
-        
-        document.getElementById('rootCause').innerText = data.diagnosis.rootCause;
-        document.getElementById('confidenceLevel').innerText = data.diagnosis.confidence;
-        
-        const fixContainer = document.getElementById('fixContainer');
-        if (data.diagnosis.suggestedFix) {
-          fixContainer.classList.remove('hidden');
-          document.getElementById('suggestedFix').innerText = data.diagnosis.suggestedFix;
-        } else {
-          fixContainer.classList.add('hidden');
-        }
-        
-        const getStatusColor = (status) => {
-          if (status === 'SUPPORTED') return 'bg-green-100 border-green-400 text-green-800';
-          if (status === 'REJECTED') return 'bg-red-100 border-red-400 text-red-800';
-          if (status === 'INCONCLUSIVE') return 'bg-yellow-100 border-yellow-400 text-yellow-800';
-          return 'bg-gray-100 border-gray-400 text-gray-800';
-        };
-
-        document.getElementById('hypotheses').innerHTML = data.hypotheses.map(h => `
-          <div class="p-3 border-l-4 rounded-r shadow-sm ${getStatusColor(h.status)}">
-            <span class="font-bold text-xs uppercase block mb-1">${h.status}</span>
-            <span class="text-sm">${h.statement}</span>
-          </div>
-        `).join('');
-
-        document.getElementById('evidence').innerHTML = data.evidence.map(e => `
-          <div class="bg-gray-50 p-3 rounded border border-gray-200 font-mono text-xs">
-            <div class="text-indigo-600 font-bold mb-1">$&gt; ${e.source}</div>
-            <div class="text-gray-600 mb-2 truncate">${e.content}</div>
-            <div class="flex space-x-2">
-              ${e.supports ? '<span class="bg-green-100 text-green-800 px-1 rounded">Supports</span>' : ''}
-              ${e.contradicts ? '<span class="bg-red-100 text-red-800 px-1 rounded">Contradicts</span>' : ''}
-            </div>
-          </div>
-        `).join('');
 
       } catch (err) {
         loadingDiv.classList.add('hidden');
@@ -210,6 +196,44 @@ FAILED tests/test_parser.py::test_parse_header_auto - ValueError: invalid litera
         btn.disabled = false;
         btn.classList.remove('opacity-50');
       }
+    }
+
+    function renderResults(data) {
+      document.getElementById('rootCause').innerText = data.diagnosis.rootCause;
+      document.getElementById('confidenceLevel').innerText = data.diagnosis.confidence;
+      
+      const fixContainer = document.getElementById('fixContainer');
+      if (data.diagnosis.suggestedFix) {
+        fixContainer.classList.remove('hidden');
+        document.getElementById('suggestedFix').innerText = data.diagnosis.suggestedFix;
+      } else {
+        fixContainer.classList.add('hidden');
+      }
+      
+      const getStatusColor = (status) => {
+        if (status === 'SUPPORTED') return 'bg-green-100 border-green-400 text-green-800';
+        if (status === 'REJECTED') return 'bg-red-100 border-red-400 text-red-800';
+        if (status === 'INCONCLUSIVE') return 'bg-yellow-100 border-yellow-400 text-yellow-800';
+        return 'bg-gray-100 border-gray-400 text-gray-800';
+      };
+
+      document.getElementById('hypotheses').innerHTML = data.hypotheses.map(h => `
+        <div class="p-3 border-l-4 rounded-r shadow-sm ${getStatusColor(h.status)}">
+          <span class="font-bold text-xs uppercase block mb-1">${h.status}</span>
+          <span class="text-sm">${h.statement}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('evidence').innerHTML = data.evidence.map(e => `
+        <div class="bg-gray-50 p-3 rounded border border-gray-200 font-mono text-xs">
+          <div class="text-indigo-600 font-bold mb-1">$&gt; ${e.source}</div>
+          <div class="text-gray-600 mb-2 truncate">${e.content}</div>
+          <div class="flex space-x-2">
+            ${e.supports ? '<span class="bg-green-100 text-green-800 px-1 rounded">Supports</span>' : ''}
+            ${e.contradicts ? '<span class="bg-red-100 text-red-800 px-1 rounded">Contradicts</span>' : ''}
+          </div>
+        </div>
+      `).join('');
     }
   </script>
 </body>

@@ -66,6 +66,44 @@ app.post('/investigate', async (req, res) => {
   }
 });
 
+app.post('/investigate-stream', async (req, res) => {
+  const { log, repoPath } = req.body;
+  if (!log || !repoPath) {
+    return res.status(400).json({ error: 'Missing log or repoPath' });
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const onProgress = (msg: string) => {
+    res.write(`data: ${JSON.stringify({ type: 'progress', message: msg })}\n\n`);
+  };
+
+  try {
+    const context = Parser.parse(log);
+    const llm = new GeminiLLM();
+    const runner = new ExperimentRunner(repoPath);
+    const ledger = new Ledger();
+    
+    // Inject progress callback
+    const loop = new InvestigationLoop(llm, runner, ledger, onProgress);
+
+    const diagnosis = await loop.run(context);
+    
+    res.write(`data: ${JSON.stringify({ 
+      type: 'complete', 
+      diagnosis, 
+      hypotheses: ledger.getAllHypotheses(), 
+      evidence: ledger.getAllEvidence() 
+    })}\n\n`);
+    res.end();
+  } catch (error: any) {
+    res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+    res.end();
+  }
+});
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Failure Prover API running on port ${PORT}`);
