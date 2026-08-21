@@ -1,3 +1,5 @@
+import { GoogleGenAI } from '@google/genai';
+
 export interface LLMRequest {
   systemPrompt: string;
   userPrompt: string;
@@ -19,35 +21,44 @@ export class FakeLLM implements ILLMProvider {
 }
 
 export class GeminiLLM implements ILLMProvider {
-  private apiKey: string;
+  private ai: GoogleGenAI;
 
   constructor() {
-    this.apiKey = process.env.GEMINI_API_KEY || '';
-    if (!this.apiKey && process.env.NODE_ENV !== 'test') {
+    const apiKey = process.env.GEMINI_API_KEY || '';
+    if (!apiKey && process.env.NODE_ENV !== 'test') {
       console.warn('GEMINI_API_KEY environment variable is not set.');
     }
+    
+    // Initialize the official Google GenAI SDK
+    this.ai = new GoogleGenAI({ apiKey });
   }
 
   async generate(request: LLMRequest): Promise<string> {
-    if (!this.apiKey) {
-      throw new Error('API Key is missing');
-    }
-    // Minimal mock-like implementation for actual API call, avoiding heavy SDK for now
-    // In real app, we'd use fetch or @google/genai
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${this.apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: request.systemPrompt }] },
-        contents: [{ role: 'user', parts: [{ text: request.userPrompt }] }]
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`LLM API Error: ${response.statusText}`);
-    }
+    const MAX_RETRIES = 4;
+    let lastError: Error = new Error('Unknown error');
 
-    const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const response = await this.ai.models.generateContent({
+          model: 'gemini-3.6-flash',
+          contents: request.userPrompt,
+          config: {
+            systemInstruction: request.systemPrompt,
+          }
+        });
+        return response.text || '';
+      } catch (e: any) {
+        lastError = new Error(`LLM API Error: ${e.message}`);
+        const isRetryable = e.message?.includes('503') || e.message?.includes('UNAVAILABLE') || e.message?.includes('overloaded');
+        if (isRetryable && attempt < MAX_RETRIES) {
+          const waitMs = 2000 * Math.pow(2, attempt - 1); // 2s, 4s, 8s
+          console.warn(`[LLM] Rate limited. Retrying in ${waitMs / 1000}s... (attempt ${attempt}/${MAX_RETRIES})`);
+          await new Promise(r => setTimeout(r, waitMs));
+        } else {
+          break;
+        }
+      }
+    }
+    throw lastError;
   }
 }
