@@ -46,7 +46,7 @@ export class InvestigationLoop {
       if (!pendingHypothesis) break;
 
       this.emit(`\n[Step {loopCount}] Investigating: ${pendingHypothesis.statement.substring(0, 50)}...`);
-      const prompt = `Hypothesis: ${pendingHypothesis.statement}\nContext: ${JSON.stringify(context)}\nPropose next experiment command. Options: read file <path>, search files <query>, run pytest, inspect git diff. Return ONLY the command string.`;
+      const prompt = `Hypothesis: ${pendingHypothesis.statement}\nContext: ${JSON.stringify(context)}\nPropose next experiment command. Options: list files, read file <path>, search files <query>, run pytest, inspect git diff. IMPORTANT: If this is an uploaded workspace with no git history, use 'list files' first to discover available files. Return ONLY the command string.`;
       
       if (process.env.NODE_ENV !== 'test') {
         this.emit('Spacing request to respect Gemini rate limits...');

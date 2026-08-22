@@ -47,9 +47,10 @@ export class ExperimentRunner {
     if (command.startsWith('read file ')) {
       const file = command.replace('read file ', '').trim();
       safeCommand = `cat "${file}"`;
+    } else if (command === 'list files') {
+      safeCommand = 'list_files_internal';
     } else if (command.startsWith('search files ')) {
-      const query = command.replace('search files ', '').trim();
-      safeCommand = `grep -rn "${query}" .`;
+      safeCommand = 'search_files_internal';
     } else if (command === 'inspect git diff') {
       safeCommand = 'git diff';
     } else if (command === 'inspect git log') {
@@ -59,7 +60,7 @@ export class ExperimentRunner {
         throw new Error(`Max test runs (${this.MAX_TEST_RUNS}) exceeded.`);
       }
       this.testRunsCount++;
-      safeCommand = 'pytest';
+      safeCommand = 'pytest -v';
     } else {
       throw new Error(`Unsupported operation: ${command}`);
     }
@@ -71,15 +72,50 @@ export class ExperimentRunner {
       if (command.startsWith('read file ')) {
         const file = path.join(this.targetRepoPath, command.replace('read file ', '').trim());
         output = fs.readFileSync(file, 'utf-8');
+      } else if (command === 'list files') {
+        // Pure JS recursive file listing — works without git
+        const listRecursive = (dir: string, base: string): string[] => {
+          const results: string[] = [];
+          for (const entry of fs.readdirSync(dir)) {
+            const full = path.join(dir, entry);
+            const rel = path.join(base, entry);
+            if (fs.statSync(full).isDirectory()) {
+              results.push(...listRecursive(full, rel));
+            } else {
+              results.push(rel);
+            }
+          }
+          return results;
+        };
+        const absPath = path.resolve(this.targetRepoPath);
+        const files = listRecursive(absPath, '');
+        output = files.join('\n') || '(no files found)';
       } else if (command.startsWith('search files ')) {
-        // very basic search for mock/simplicity, avoiding grep vs windows findstr
+        // Pure JS recursive text search — works without git
         const query = command.replace('search files ', '').trim();
-        // Just mock it or use a simple recursive search - we'll just shell out to `git grep` which works everywhere if git is installed
-        safeCommand = `git grep -n "${query}"`;
-        const { stdout, stderr } = await execAsync(safeCommand, { cwd: this.targetRepoPath, timeout: 10000 });
-        output = stdout + stderr;
+        const searchRecursive = (dir: string, base: string): string[] => {
+          const matches: string[] = [];
+          for (const entry of fs.readdirSync(dir)) {
+            const full = path.join(dir, entry);
+            const rel = path.join(base, entry);
+            if (fs.statSync(full).isDirectory()) {
+              matches.push(...searchRecursive(full, rel));
+            } else if (full.endsWith('.py') || full.endsWith('.ts') || full.endsWith('.js') || full.endsWith('.txt')) {
+              const lines = fs.readFileSync(full, 'utf-8').split('\n');
+              lines.forEach((line, i) => {
+                if (line.includes(query)) {
+                  matches.push(`${rel}:${i + 1}: ${line.trim()}`);
+                }
+              });
+            }
+          }
+          return matches;
+        };
+        const absPath = path.resolve(this.targetRepoPath);
+        const matches = searchRecursive(absPath, '');
+        output = matches.join('\n') || `(no matches found for "${query}")`;
       } else {
-        const { stdout, stderr } = await execAsync(safeCommand, { cwd: this.targetRepoPath, timeout: 10000 });
+        const { stdout, stderr } = await execAsync(safeCommand, { cwd: this.targetRepoPath, timeout: 15000 });
         output = stdout + stderr;
       }
     } catch (e: any) {

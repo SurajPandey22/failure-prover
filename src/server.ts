@@ -202,6 +202,7 @@ app.use('/apply-patch', authMiddleware);
 app.use('/export-report', authMiddleware);
 app.use('/examples', authMiddleware);
 app.use('/observability', authMiddleware);
+app.use('/upload-workspace', authMiddleware);
 
 // ─── Static Frontend ──────────────────────────────────────────────────────────
 const frontendPath = fs.existsSync(path.resolve(process.cwd(), 'frontend'))
