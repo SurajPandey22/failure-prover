@@ -164,6 +164,35 @@ app.post('/logout', async (req, res) => {
   return res.json({ success: true });
 });
 
+// POST /upload-workspace
+app.post('/upload-workspace', authMiddleware, (req, res) => {
+  const { files } = req.body;
+  if (!files || !Array.isArray(files)) {
+    return res.status(400).json({ error: 'No files provided' });
+  }
+
+  const workspaceId = `workspace_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+  const workspacePath = path.join(process.cwd(), 'data', 'workspaces', workspaceId);
+
+  try {
+    fs.mkdirSync(workspacePath, { recursive: true });
+    
+    // Write each uploaded file into the new workspace
+    for (const file of files) {
+      if (file.name && file.content) {
+        // Prevent directory traversal attacks
+        const safeName = path.basename(file.name);
+        fs.writeFileSync(path.join(workspacePath, safeName), file.content, 'utf-8');
+      }
+    }
+
+    return res.json({ success: true, repoPath: `./data/workspaces/${workspaceId}` });
+  } catch (err: any) {
+    console.error('Upload Error:', err);
+    return res.status(500).json({ error: 'Failed to create workspace' });
+  }
+});
+
 import { Observability } from './observability';
 
 // Apply auth to all API routes (not static files)
