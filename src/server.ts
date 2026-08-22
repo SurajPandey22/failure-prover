@@ -40,17 +40,22 @@ app.options('*', cors());
 app.use(express.json());
 
 // ─── Auth Config ─────────────────────────────────────────────────────────────
+import { createClient } from 'redis';
+
+const redisClient = createClient({
+  url: process.env.REDIS_URL || 'redis://default:INw8MozvXCd5NoXWCegVk5Go2Kh2cPCC@redis-10868.crce182.ap-south-1-1.ec2.cloud.redislabs.com:10868'
+});
+redisClient.on('error', (err) => console.error('Redis Client Error', err));
+redisClient.connect().catch(console.error);
+
 interface UserRecord { username: string; passwordHash: string; createdAt: string; }
-interface SessionRecord { token: string; username: string; createdAt: string; }
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const usersFile = path.join(DATA_DIR, 'users.json');
-const sessionsFile = path.join(DATA_DIR, 'sessions.json');
 
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(usersFile)) fs.writeFileSync(usersFile, '[]', 'utf-8');
-  if (!fs.existsSync(sessionsFile)) fs.writeFileSync(sessionsFile, '[]', 'utf-8');
 }
 
 function loadUsers(): UserRecord[] {
@@ -62,31 +67,31 @@ function saveUsers(users: UserRecord[]) {
   fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), 'utf-8');
 }
 
-function loadSessions(): SessionRecord[] {
-  try { ensureDataDir(); return JSON.parse(fs.readFileSync(sessionsFile, 'utf-8')); } catch { return []; }
+async function isValidToken(token: string): Promise<boolean> {
+  try {
+    const exists = await redisClient.exists(token);
+    return exists === 1;
+  } catch (err) {
+    console.error('Redis exists error', err);
+    return false;
+  }
 }
 
-function saveSessions(sessions: SessionRecord[]) {
-  ensureDataDir();
-  fs.writeFileSync(sessionsFile, JSON.stringify(sessions, null, 2), 'utf-8');
+async function addSession(token: string, username: string) {
+  try {
+    // Set token with 1 day (86400 seconds) expiration
+    await redisClient.setEx(token, 86400, username);
+  } catch (err) {
+    console.error('Redis setEx error', err);
+  }
 }
 
-function isValidToken(token: string): boolean {
-  const sessions = loadSessions();
-  return sessions.some(s => s.token === token);
-}
-
-function addSession(token: string, username: string) {
-  const sessions = loadSessions();
-  // Keep max 200 sessions, drop oldest first
-  const trimmed = sessions.slice(-199);
-  trimmed.push({ token, username, createdAt: new Date().toISOString() });
-  saveSessions(trimmed);
-}
-
-function removeSession(token: string) {
-  const sessions = loadSessions().filter(s => s.token !== token);
-  saveSessions(sessions);
+async function removeSession(token: string) {
+  try {
+    await redisClient.del(token);
+  } catch (err) {
+    console.error('Redis del error', err);
+  }
 }
 
 function hashPassword(password: string): string {
@@ -97,16 +102,20 @@ function generateToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
-function authMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+async function authMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   const token = req.headers['x-auth-token'] as string || req.query.token as string;
-  if (!token || !isValidToken(token)) {
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized. Please log in.' });
+  }
+  const valid = await isValidToken(token);
+  if (!valid) {
     return res.status(401).json({ error: 'Unauthorized. Please log in.' });
   }
   next();
 }
 
 // POST /signup
-app.post('/signup', (req, res) => {
+app.post('/signup', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required.' });
@@ -129,12 +138,12 @@ app.post('/signup', (req, res) => {
   users.push(newUser);
   saveUsers(users);
   const token = generateToken();
-  addSession(token, username);
+  await addSession(token, username);
   return res.json({ success: true, token, username });
 });
 
 // POST /login
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required.' });
@@ -145,14 +154,14 @@ app.post('/login', (req, res) => {
     return res.status(401).json({ error: 'Invalid username or password.' });
   }
   const token = generateToken();
-  addSession(token, username);
+  await addSession(token, username);
   return res.json({ success: true, token, username });
 });
 
 // POST /logout
-app.post('/logout', (req, res) => {
+app.post('/logout', async (req, res) => {
   const token = req.headers['x-auth-token'] as string;
-  if (token) removeSession(token);
+  if (token) await removeSession(token);
   return res.json({ success: true });
 });
 
