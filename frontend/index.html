@@ -791,15 +791,20 @@ FAILED tests/test_main.py::test_case_${i} - RuntimeError: Unhandled error in tas
     async function loadExamplesFromServer() {
       try {
         const res = await fetch('/examples', { headers: { 'x-auth-token': getToken() } });
+        if (res.status === 401) {
+          logout();
+          return;
+        }
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
             loadedExamples = data;
             renderExamplesList(loadedExamples);
+            selectChip(0); // auto-select first
           }
         }
       } catch (err) {
-        console.warn('Using built-in presets:', err.message);
+        console.warn('Failed to load examples', err);
       }
     }
 
@@ -917,13 +922,18 @@ FAILED tests/test_main.py::test_case_${i} - RuntimeError: Unhandled error in tas
 
       try {
         updateStep(2);
-        const res = await fetch('/investigate-stream', {
+        const response = await fetch('/investigate-stream', {
           method: 'POST',
           headers: authHeaders(),
           body: JSON.stringify({ log, repoPath, demoMode: isDemo })
         });
 
-        const reader = res.body.getReader();
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+
+        const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
         let done = false;
 
