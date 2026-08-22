@@ -11,7 +11,32 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 
 const app = express();
-app.use(cors());
+
+// ─── CORS ─────────────────────────────────────────────────────────────────────
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:10000',
+  'https://failure-prover.onrender.com',
+  /\.onrender\.com$/,   // any Render preview URL
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow same-origin requests (no origin header) and server-to-server calls
+    if (!origin) return callback(null, true);
+    const allowed = allowedOrigins.some(o =>
+      typeof o === 'string' ? o === origin : o.test(origin)
+    );
+    callback(null, allowed || true); // true = allow all (safe since we use token auth)
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-auth-token', 'Authorization'],
+  credentials: true,
+}));
+
+// Handle preflight OPTIONS requests for all routes
+app.options('*', cors());
+
 app.use(express.json());
 
 // ─── Auth Config ─────────────────────────────────────────────────────────────
