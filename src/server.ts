@@ -34,8 +34,7 @@ app.use(cors({
   credentials: true,
 }));
 
-// Handle preflight OPTIONS requests for all routes
-app.options('*', cors());
+// Preflight is handled automatically by app.use(cors()) in Express 5
 
 app.use(express.json());
 
