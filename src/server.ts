@@ -16,14 +16,16 @@ app.use(express.json());
 
 // ─── Auth Config ─────────────────────────────────────────────────────────────
 interface UserRecord { username: string; passwordHash: string; createdAt: string; }
+interface SessionRecord { token: string; username: string; createdAt: string; }
 
-const usersFile = path.resolve(process.cwd(), 'data', 'users.json');
-const activeSessions = new Map<string, string>(); // token -> username
+const DATA_DIR = path.resolve(process.cwd(), 'data');
+const usersFile = path.join(DATA_DIR, 'users.json');
+const sessionsFile = path.join(DATA_DIR, 'sessions.json');
 
 function ensureDataDir() {
-  const dir = path.dirname(usersFile);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(usersFile)) fs.writeFileSync(usersFile, '[]', 'utf-8');
+  if (!fs.existsSync(sessionsFile)) fs.writeFileSync(sessionsFile, '[]', 'utf-8');
 }
 
 function loadUsers(): UserRecord[] {
@@ -33,6 +35,33 @@ function loadUsers(): UserRecord[] {
 function saveUsers(users: UserRecord[]) {
   ensureDataDir();
   fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), 'utf-8');
+}
+
+function loadSessions(): SessionRecord[] {
+  try { ensureDataDir(); return JSON.parse(fs.readFileSync(sessionsFile, 'utf-8')); } catch { return []; }
+}
+
+function saveSessions(sessions: SessionRecord[]) {
+  ensureDataDir();
+  fs.writeFileSync(sessionsFile, JSON.stringify(sessions, null, 2), 'utf-8');
+}
+
+function isValidToken(token: string): boolean {
+  const sessions = loadSessions();
+  return sessions.some(s => s.token === token);
+}
+
+function addSession(token: string, username: string) {
+  const sessions = loadSessions();
+  // Keep max 200 sessions, drop oldest first
+  const trimmed = sessions.slice(-199);
+  trimmed.push({ token, username, createdAt: new Date().toISOString() });
+  saveSessions(trimmed);
+}
+
+function removeSession(token: string) {
+  const sessions = loadSessions().filter(s => s.token !== token);
+  saveSessions(sessions);
 }
 
 function hashPassword(password: string): string {
@@ -45,7 +74,7 @@ function generateToken(): string {
 
 function authMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   const token = req.headers['x-auth-token'] as string || req.query.token as string;
-  if (!token || !activeSessions.has(token)) {
+  if (!token || !isValidToken(token)) {
     return res.status(401).json({ error: 'Unauthorized. Please log in.' });
   }
   next();
@@ -75,7 +104,7 @@ app.post('/signup', (req, res) => {
   users.push(newUser);
   saveUsers(users);
   const token = generateToken();
-  activeSessions.set(token, username);
+  addSession(token, username);
   return res.json({ success: true, token, username });
 });
 
@@ -91,14 +120,14 @@ app.post('/login', (req, res) => {
     return res.status(401).json({ error: 'Invalid username or password.' });
   }
   const token = generateToken();
-  activeSessions.set(token, username);
+  addSession(token, username);
   return res.json({ success: true, token, username });
 });
 
 // POST /logout
 app.post('/logout', (req, res) => {
   const token = req.headers['x-auth-token'] as string;
-  if (token) activeSessions.delete(token);
+  if (token) removeSession(token);
   return res.json({ success: true });
 });
 
