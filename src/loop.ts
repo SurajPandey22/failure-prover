@@ -37,6 +37,7 @@ export class InvestigationLoop {
     }
 
     let loopCount = 0;
+    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
     
     while (loopCount < 8) { 
       loopCount++;
@@ -46,6 +47,12 @@ export class InvestigationLoop {
 
       this.emit(`\n[Step {loopCount}] Investigating: ${pendingHypothesis.statement.substring(0, 50)}...`);
       const prompt = `Hypothesis: ${pendingHypothesis.statement}\nContext: ${JSON.stringify(context)}\nPropose next experiment command. Options: read file <path>, search files <query>, run pytest, inspect git diff. Return ONLY the command string.`;
+      
+      if (process.env.NODE_ENV !== 'test') {
+        this.emit('Spacing request to respect Gemini rate limits...');
+        await sleep(7000);
+      }
+
       let command = await this.llm.generate({ 
         systemPrompt: 'You are an investigator.', 
         userPrompt: prompt,
@@ -70,6 +77,11 @@ export class InvestigationLoop {
 
       this.emit(`-> Evaluating experiment evidence...`);
       const evalPrompt = `Command: ${command}\nOutput: ${result.output}\nDoes this support or contradict the hypothesis: "${pendingHypothesis.statement}"? Return JSON: {"supports": true/false, "contradicts": true/false, "reason": "..."}`;
+      
+      if (process.env.NODE_ENV !== 'test') {
+        await sleep(7000);
+      }
+
       let evalResultStr = await this.llm.generate({ 
         systemPrompt: 'You evaluate evidence strictly.', 
         userPrompt: evalPrompt,
@@ -103,6 +115,7 @@ export class InvestigationLoop {
         this.emit(`-> Hypothesis conditionally supported. Handing to Independent Verifier...`);
         const evFor = pendingHypothesis.evidenceFor.map(id => this.ledger.getEvidence(id)!);
         const evAgainst = pendingHypothesis.evidenceAgainst.map(id => this.ledger.getEvidence(id)!);
+        if (process.env.NODE_ENV !== 'test') await sleep(7000);
         const verifiedStatus = await verifier.verify(pendingHypothesis, evFor, evAgainst, context);
         pendingHypothesis.status = verifiedStatus;
         this.emit(`-> Verifier verdict: ${verifiedStatus}`);
@@ -124,6 +137,7 @@ export class InvestigationLoop {
     };
 
     if (supported) {
+      if (process.env.NODE_ENV !== 'test') await sleep(7000);
       const fix = await patcher.generatePatch(diagnosis, context);
       if (fix) diagnosis.suggestedFix = fix;
     }
